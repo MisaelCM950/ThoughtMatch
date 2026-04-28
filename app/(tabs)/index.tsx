@@ -1,5 +1,6 @@
 import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import { useState } from 'react';
+import { Platform, Pressable, StyleSheet, TextInput } from 'react-native';
 
 import { HelloWave } from '@/components/hello-wave';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
@@ -8,6 +9,8 @@ import { ThemedView } from '@/components/themed-view';
 import { Link } from 'expo-router';
 
 export default function HomeScreen() {
+    const [thought, setThought] = useState('');
+    const [status, setStatus] = useState<'idle' | 'matching' | 'queued'>('idle');
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
@@ -18,10 +21,18 @@ export default function HomeScreen() {
         />
       }>
       <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
+        <ThemedText type="title">What are you thinking about?</ThemedText>
         <HelloWave />
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
+      <TextInput placeholder="Type your thought…" style={styles.input} value={thought} onChangeText={setThought} />
+        <Pressable
+            onPress={() => console.log('match pressed:', thought)}
+            disabled={thought.trim().length < 3}
+            style={[styles.button, thought.trim().length < 3 && styles.buttonDisabled]}
+            >
+                <ThemedText type="defaultSemiBold">Match me</ThemedText>
+        </Pressable>
         <ThemedText type="subtitle">Step 1: Try it</ThemedText>
         <ThemedText>
           Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
@@ -79,6 +90,22 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+    input: {
+        borderWidth: 1,
+        borderColor: '#999',
+        padding: 12,
+        borderRadius: 8,
+      },
+    button: {
+        marginTop: 12,
+        paddingVertical: 14,
+        borderRadius: 10,
+        alignItems: 'center',
+        backgroundColor: '#2f6fed',
+      },
+      buttonDisabled: {
+        opacity: 0.4,
+      },
   titleContainer: {
     flexDirection: 'row',
     alignItems: 'center',
