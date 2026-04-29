@@ -1,6 +1,6 @@
 import { FontAwesome } from '@expo/vector-icons';
-import { Stack, useLocalSearchParams } from 'expo-router';
-import { FlatList, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableWithoutFeedback, View } from 'react-native';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, TouchableWithoutFeedback, View } from 'react-native';
 
 export default function Chat() {
     const messages = [
@@ -18,9 +18,25 @@ export default function Chat() {
         {id: '12', from: 'me', text: 'Same. SATs are brutal.'}
     ];
     const {roomId, thought} = useLocalSearchParams();
+    const router = useRouter();
   return (
     <>
-    <Stack.Screen options={{headerBackVisible: false, title: String(thought ?? '')}}/>
+    <Stack.Screen options={{
+        title: String(thought ?? ''), 
+        headerStyle: {backgroundColor: '#000'}, 
+        headerTintColor: '#fff', 
+        headerTitleAlign: 'center',
+        headerLeft: ()=> (
+            <Pressable style={{paddingRight: 20, paddingLeft: 10}} onPress={()=> router.back()}>
+                <FontAwesome name='chevron-left' size={23} color='#fff'/>
+            </Pressable>
+        ),
+        headerRight: () => (
+            <Pressable style={{paddingHorizontal: 20}} onPress={()=> console.log('Menu Open')}>
+                <FontAwesome name='ellipsis-h' size={22} color='#fff'/>
+            </Pressable>
+        )
+    }}/>
     <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
         <Text style={{color: "white"}}>{String(roomId ?? '')}</Text>
