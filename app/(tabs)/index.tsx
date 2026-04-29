@@ -32,8 +32,12 @@ export default function HomeScreen() {
                     const matched = Math.random() < 0.5;
                     if(matched){
                         setStatus('matched');
-                        setRoomId('demo-room-123');
-                        router.push("/chat")
+                        const newRoomId = 'demo-room-123';
+                        setRoomId(newRoomId);
+                        router.push({
+                            pathname: '/chat',
+                            params: {roomId: newRoomId, thought}
+                        })
                     } else{
                         setStatus('queued');
                         setRoomId(null);
