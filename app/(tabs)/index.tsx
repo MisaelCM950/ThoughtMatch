@@ -1,16 +1,16 @@
-import { Image } from 'expo-image';
-import { useState } from 'react';
-import { Platform, Pressable, StyleSheet, TextInput } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
 import ParallaxScrollView from '@/components/parallax-scroll-view';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { Image } from 'expo-image';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { Pressable, StyleSheet, TextInput } from 'react-native';
 
 export default function HomeScreen() {
     const [thought, setThought] = useState('');
-    const [status, setStatus] = useState<'idle' | 'matching' | 'queued'>('idle');
+    const [status, setStatus] = useState<'idle' | 'matching'  | 'queued' | 'matched'>('idle');
+    const [roomId, setRoomId] = useState<string | null>(null);
+    const router = useRouter();
   return (
     <ParallaxScrollView
       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
@@ -22,68 +22,33 @@ export default function HomeScreen() {
       }>
       <ThemedView style={styles.titleContainer}>
         <ThemedText type="title">What are you thinking about?</ThemedText>
-        <HelloWave />
       </ThemedView>
       <ThemedView style={styles.stepContainer}>
       <TextInput placeholder="Type your thought…" style={styles.input} value={thought} onChangeText={setThought} />
         <Pressable
-            onPress={() => console.log('match pressed:', thought)}
+            onPress={() => {
+                setStatus('matching');
+                setTimeout(() =>{
+                    const matched = Math.random() < 0.5;
+                    if(matched){
+                        setStatus('matched');
+                        setRoomId('demo-room-123');
+                        router.push("/chat")
+                    } else{
+                        setStatus('queued');
+                        setRoomId(null);
+                    }
+                }, 1200)
+            }}
             disabled={thought.trim().length < 3}
             style={[styles.button, thought.trim().length < 3 && styles.buttonDisabled]}
             >
                 <ThemedText type="defaultSemiBold">Match me</ThemedText>
         </Pressable>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
+        {status === 'matching' && <ThemedText>Matching...</ThemedText>}
+        {status === 'queued' && <ThemedText>No instant match. You're queued</ThemedText>}
+        {status === 'matched' && <ThemedText>Matched: Room {roomId}</ThemedText>}
       </ThemedView>
     </ParallaxScrollView>
   );
@@ -95,6 +60,7 @@ const styles = StyleSheet.create({
         borderColor: '#999',
         padding: 12,
         borderRadius: 8,
+        color: 'white'
       },
     button: {
         marginTop: 12,
