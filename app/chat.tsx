@@ -1,24 +1,65 @@
+import { supabase } from '@/lib/supabase';
 import { FontAwesome } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { FlatList, Keyboard, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, TouchableWithoutFeedback, View } from 'react-native';
 
 export default function Chat() {
-    const messages = [
-        {id: '1', from: 'other', text:'Hey, what are you thinking about?'},
-        {id: '2', from: 'me', text: 'University prep for the US as an international student.'},
-        {id: '3', from: 'other', text: 'Same. SATs are brutal.'},
-        {id: '4', from: 'me', text: 'Yeah.'},
-        {id: '5', from: 'other', text: 'Same. SATs are brutal.'},
-        {id: '6', from: 'me', text: 'Same. SATs are brutal.'},
-        {id: '7', from: 'other', text: 'Same. SATs are brutal.'},
-        {id: '8', from: 'me', text: 'Same. SATs are brutal.'},
-        {id: '9', from: 'other', text: 'Same. SATs are brutal.'},
-        {id: '10', from: 'me', text: 'Same. SATs are brutal.'},
-        {id: '11', from: 'other', text: 'Same. SATs are brutal.'},
-        {id: '12', from: 'me', text: 'Same. SATs are brutal.'}
-    ];
+
+    const [input, setInput] = useState('');
+    const [messages, setMessages] = useState<any[]>([]);
+    const [user, setUser] = useState<any>(null);
+    useEffect(()=> {
+        supabase.auth.getUser().then(({data}) => setUser(data.user));
+    }, [])
     const {roomId, thought} = useLocalSearchParams();
+    console.log(roomId)
     const router = useRouter();
+    
+    const sendMessage = async () => {
+        if(input.trim().length === 0) return;
+        const newMessage = {
+            content: input,
+            user_id: user.id,
+            room_id: String(roomId),
+        };
+        const {error} = await supabase.from('messages').insert(newMessage);
+        if(error) {
+            alert("Message failed to send");
+            console.error("Supabase Error Details:", error);
+        } else{
+            setInput('');
+        }
+    };
+
+    useEffect(()=> {
+        if (!roomId) return;
+
+        const fetchMessages = async () => {
+            const {data} = await supabase
+                .from('messages')
+                .select('*')
+                .eq('room_id', roomId)
+                .order('created_at', {ascending: true});
+                if (data) setMessages(data);
+                console.log("Fetched messages:", data)
+        }
+        fetchMessages();
+        
+        const channel = supabase
+            .channel(`room-${roomId}`)
+            .on('postgres_changes',
+                {event: 'INSERT', schema: 'public', table: 'messages', filter: `room_id=eq.${roomId}`},
+                (payload) => {
+                    setMessages((current) => [...current, payload.new])
+                }
+            )
+            .subscribe();
+            return () => {
+                supabase.removeChannel(channel);
+            };
+    }, [roomId]);
+
   return (
     <>
     <Stack.Screen options={{
@@ -41,22 +82,28 @@ export default function Chat() {
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
         <Text style={{color: "white"}}>{String(roomId ?? '')}</Text>
         <Text style={{color: "white"}}>Thought Match: {String(thought ?? '')}</Text>
-    <FlatList keyExtractor={(item)=> item.id} contentContainerStyle={styles.contentContainer} data={messages} renderItem={({item})=>(
-            <View style={[styles.messageRow, item.from === 'me' ? styles.rowMe : styles.rowOther ]}>
-                <View style={[styles.bubble, item.from === 'me' ? styles.bubbleMe : styles.bubbleOther]}>
-                    <Text style={styles.bubbleText}>{item.text}</Text>
+    <FlatList keyExtractor={(item)=> item.id} contentContainerStyle={styles.contentContainer} data={messages} renderItem={({item})=>{
+        const isMe = item.user_id === user?.id;
+        return (
+            <View style={[styles.messageRow, isMe ? styles.rowMe : styles.rowOther ]}>
+                <View style={[styles.bubble, isMe ? styles.bubbleMe : styles.bubbleOther]}>
+                    <Text style={styles.bubbleText}>{item.content}</Text>
                 </View>
             </View>
             
-        )}/>
+        )}}/>
     <View style={styles.messageBar}>
     <FontAwesome name='plus' size={22} color="#fff"/>
         <TextInput 
             placeholder='Type a message'
             placeholderTextColor='#999'
             style={styles.input}
+            value= {input} 
+            onChangeText={setInput}
         />
-        <FontAwesome name='send' size={22} color="#fff"/>
+        <Pressable onPress={sendMessage}>
+            <FontAwesome name='send' size={22} color="#fff" style={{paddingVertical: 5}}/>
+        </Pressable>
     </View>
     </KeyboardAvoidingView>
     </TouchableWithoutFeedback>
