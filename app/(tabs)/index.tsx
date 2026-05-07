@@ -1,11 +1,8 @@
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
 import { supabase } from '@/lib/supabase';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, TextInput } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function HomeScreen() {
     const [thought, setThought] = useState('');
@@ -20,25 +17,46 @@ export default function HomeScreen() {
             return;
         }
         setStatus('matching');
+
         try {
             const {data: {user}} = await supabase.auth.getUser();
             if(!user) throw new Error("No user found");
-
+            
             const { data, error } = await supabase.functions.invoke('match-thought', {
                 body: { 
                     thought: thought, 
                     userId: user.id 
-                },
+                }      
+                
             });
             if(data?.match) {
+                const {room_id, alreadyMatched, content} = data.match;
+                if(alreadyMatched) {
+                    Alert.alert(
+                        "Existing Match",
+                        `You are already talking to someone about "${data.match.content}".`,
+                        [
+                            {
+                                text: "Go to Chat",
+                                onPress: ()=> router.push({
+                                    pathname: '/chat',
+                                    params: {roomId: room_id, thought: content}
+                                })
+                            },
+                            {text: "Cancel", style: 'cancel', onPress: ()=> (setStatus('idle'))}
+                        ]
+                    );
+                    return;
+                } else {
+                    console.log("New Match Found!")
+                }
                 console.log("You matched with someone thinking about:", data.match.content);
                 setStatus('matched');
-                const generatedRoomId = data.match.id;
                 setTimeout(() => {
                     router.push({
                         pathname: '/chat',
                         params: {
-                            roomId: generatedRoomId,
+                            roomId: room_id,
                             thought: thought
                         }
                     })
@@ -54,73 +72,124 @@ export default function HomeScreen() {
             }
     }
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">What are you thinking about?</ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-      <TextInput placeholder="Type your thought…" style={styles.input} value={thought} onChangeText={setThought} multiline/>
-        <Pressable
+    <ScrollView style={styles.container}>
+        <View style={styles.headerContainer}>
+            <Image
+            source={require('@/assets/images/partial-react-logo.png')}
+            style={styles.logo}
+            />
+        </View>
+      
+      <View style={styles.content}>
+        <Text style={styles.title}>What are you thinking about?</Text>
+      
+      <TextInput 
+        placeholder="Type your thought…" 
+        style={styles.input} 
+        value={thought} 
+        onChangeText={setThought} 
+        multiline
+      />
+        <TouchableOpacity
             onPress={handleMatch}
             disabled={status === 'matching' || thought.trim().length < 5}
             style={[styles.button, ( status === 'matching' || thought.trim().length < 5) && styles.buttonDisabled]}
             >
-                <ThemedText type="defaultSemiBold">{status === 'matching' ? "Finding Match..." : "Match Me"}</ThemedText>
-        </Pressable>
+                <Text style={styles.buttonText}>{status === 'matching' ? "Finding Match..." : "Match Me"}</Text>
+        </TouchableOpacity>
 
-        {status === 'matching' && <ThemedText>Matching...</ThemedText>}
-        {status === 'queued' && <ThemedText>No instant match. You're queued</ThemedText>}
-        {status === 'matched' && <ThemedText>Matched: Room {roomId}</ThemedText>}
-        <Pressable
+        {status === 'matching' && <Text style={styles.statusText}>Matching...</Text>}
+        {status === 'queued' && <Text style={styles.statusText}>No instant match. You're queued</Text>}
+        {status === 'matched' && <Text style={styles.statusText}>Matched: Room {roomId}</Text>}
+
+        <TouchableOpacity style={styles.chatsButton} onPress={()=> router.push('/matches')}>
+                <Text style={styles.chatsButtonText}>My Chats</Text>
+        </TouchableOpacity>
+        
+        <TouchableOpacity
             onPress={()=> supabase.auth.signOut()}
-            style={{marginTop: 20}}
+            style={styles.logoutButton}
         >
-            <ThemedText style={{color: 'red'}}>Logout</ThemedText>
-        </Pressable>
-      </ThemedView>
-    </ParallaxScrollView>
+            <Text style={styles.logoutText}>Logout</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+    statusText: {
+        color: '#AAA',
+        textAlign: 'center'
+    },
+    chatsButton: {
+        marginTop: 20,
+        borderWidth: 1,
+        borderColor: '#2f6fed',
+        paddingVertical: 16,
+        borderRadius: 8,
+        alignItems: 'center'
+    },
+    chatsButtonText: {
+        color: '#2f6fed',
+        fontWeight: '600',
+        fontSize: 16
+    },
+    logoutButton: {
+        marginTop: 40,
+        alignItems: 'center'
+    },
+    logoutText: {
+        color: '#FF4444',
+        fontSize: 14
+    },
+    title: {
+        fontSize: 24,
+        color: '#FFFFFF',
+        fontWeight: 'bold',
+    },
+    container: {
+        flex: 1,
+        backgroundColor: '#121212'
+    },
+    headerContainer: {
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: 200,
+        backgroundColor: '#1D3D47'
+    },
     input: {
         borderWidth: 1,
         borderColor: '#999',
-        padding: 12,
+        padding: 16,
+        backgroundColor: '#1E1E1E',
         borderRadius: 8,
         color: 'white'
       },
     button: {
         marginTop: 12,
-        paddingVertical: 14,
+        paddingVertical: 16,
         borderRadius: 10,
         alignItems: 'center',
         backgroundColor: '#2f6fed',
       },
+    buttonText: {
+        color: '#FFFFFF',
+        fontWeight: '600',
+        fontSize: 16
+    },
       buttonDisabled: {
-        opacity: 0.4,
+        opacity: 0.5,
       },
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
+    content: {
+        padding: 24,
+        gap: 16
+    },
+    logo: {
+        height: 178,
+        width: 290,
+        bottom: 0,
+        left: 0,
+        position: 'absolute',
+    },
 });
