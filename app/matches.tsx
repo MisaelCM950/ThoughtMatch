@@ -64,13 +64,31 @@ export default function MatchesScreen() {
             <Text style={styles.subText}>Tap to chat</Text>
         </TouchableOpacity>
       )}
-      ListEmptyComponent={<Text style={{color: 'gray'}}>No matches yet. Go think something!</Text>}
+      ListEmptyComponent={
+        <View>
+            <Text style={{color: 'gray'}}>No matches yet. Go think something!</Text>
+            <TouchableOpacity style={styles.button} onPress={()=> router.back()}>
+                <Text style={styles.buttonText}>Go Think!</Text>
+            </TouchableOpacity>
+        </View>}
     />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+    button: {
+        backgroundColor: '#2686b3',
+        padding: 16,
+        borderRadius: 10,
+        alignItems: 'center',
+        marginTop: 40,
+    },
+    buttonText: { 
+        color: 'white', 
+        fontWeight: 'bold', 
+        fontSize: 16 
+    },
     chatCard: {
         backgroundColor: '#1a1a1a',
         padding: 20,
@@ -99,6 +117,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     color: '#fff',
     fontWeight: 'bold',
+    marginTop: 20,
     marginBottom: 20
   },
 });

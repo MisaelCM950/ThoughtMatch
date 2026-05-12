@@ -7,10 +7,26 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 export default function Chat() {
     const flatListRef = useRef<FlatList>(null);
+    const [otherUserName, setOtherUserName] = useState('Someone')
     const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null)
     const [input, setInput] = useState('');
     const [messages, setMessages] = useState<any[]>([]);
     const [user, setUser] = useState<any>(null);
+
+    async function fetchOtherParticipant() {
+        const {data: {user: me}} = await supabase.auth.getUser();
+        if(!me) return;
+
+
+        if(user) {
+            const fullName = user.user_metadata?.full_name;
+            setName(fullName || 'No name set')
+        }
+    }
+
+    useEffect(()=> {
+        fetchOtherParticipant();
+    }, [])
     useEffect(()=> {
         supabase.auth.getUser().then(({data}) => setUser(data.user));
     }, [])
@@ -94,7 +110,7 @@ export default function Chat() {
 
     const RenderHeader = () => (
         <View style={styles.matchContainer}>
-            <Text style={styles.matchText}> You matched on: <Text style={styles.highlightText}>{thought}</Text> with <Text style={styles.highlightText}>Misael</Text></Text>
+            <Text style={styles.matchText}> You matched on: <Text style={styles.highlightText}>{thought}</Text> with <Text style={styles.highlightText}>{otherUserName}</Text></Text>
         </View>
     )
 

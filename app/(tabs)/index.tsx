@@ -1,5 +1,4 @@
 import { supabase } from '@/lib/supabase';
-import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
@@ -40,7 +39,7 @@ export default function HomeScreen() {
                                 text: "Go to Chat",
                                 onPress: ()=> router.push({
                                     pathname: '/chat',
-                                    params: {roomId: room_id, thought: content}
+                                    params: {roomId: room_id, thought: content},
                                 })
                             },
                             {text: "Cancel", style: 'cancel', onPress: ()=> (setStatus('idle'))}
@@ -51,6 +50,7 @@ export default function HomeScreen() {
                     console.log("New Match Found!")
                 }
                 console.log("You matched with someone thinking about:", data.match.content);
+                setRoomId(room_id)
                 setStatus('matched');
                 setTimeout(() => {
                     router.push({
@@ -72,15 +72,9 @@ export default function HomeScreen() {
             }
     }
   return (
-    <ScrollView style={styles.container}>
-        <View style={styles.headerContainer}>
-            <Image
-            source={require('@/assets/images/partial-react-logo.png')}
-            style={styles.logo}
-            />
-        </View>
-      
+    <ScrollView style={styles.container}> 
       <View style={styles.content}>
+        <Text style={styles.titleApp}>ThoughtMatch</Text>
         <Text style={styles.title}>What are you thinking about?</Text>
       
       <TextInput 
@@ -105,19 +99,13 @@ export default function HomeScreen() {
         <TouchableOpacity style={styles.chatsButton} onPress={()=> router.push('/matches')}>
                 <Text style={styles.chatsButtonText}>My Chats</Text>
         </TouchableOpacity>
-        
-        <TouchableOpacity
-            onPress={()=> supabase.auth.signOut()}
-            style={styles.logoutButton}
-        >
-            <Text style={styles.logoutText}>Logout</Text>
-        </TouchableOpacity>
       </View>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
+    titleApp: { color: 'white', fontSize: 32, fontWeight: 'bold', marginBottom: 40, textAlign: 'center' },
     statusText: {
         color: '#AAA',
         textAlign: 'center'
@@ -146,6 +134,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 24,
         color: '#FFFFFF',
+        textAlign: 'center',
         fontWeight: 'bold',
     },
     container: {
@@ -183,6 +172,7 @@ const styles = StyleSheet.create({
       },
     content: {
         padding: 24,
+        marginTop: 50,
         gap: 16
     },
     logo: {

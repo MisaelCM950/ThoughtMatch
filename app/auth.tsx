@@ -1,11 +1,13 @@
+import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, TouchableWithoutFeedback, View } from 'react-native';
+import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { supabase } from '../lib/supabase';
 
 export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   async function signIn() {
     setLoading(true);
@@ -47,13 +49,13 @@ export default function Auth() {
           style={styles.input}
         />
 
-        <Pressable style={styles.buttonPrimary} onPress={signIn} disabled={loading}>
+        <TouchableOpacity style={styles.buttonPrimary} onPress={signIn} disabled={loading}>
           {loading ? <ActivityIndicator color="white" /> : <Text style={styles.buttonText}>Sign In</Text>}
-        </Pressable>
+        </TouchableOpacity>
 
-        <Pressable style={styles.buttonSecondary} onPress={signUp} disabled={loading}>
+        <TouchableOpacity style={styles.buttonSecondary} onPress={()=> {router.push('/signup')}} disabled={loading}>
           <Text style={styles.buttonSecondaryText}>Create Account</Text>
-        </Pressable>
+        </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
     </TouchableWithoutFeedback>
@@ -81,6 +83,12 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   buttonText: { color: 'white', fontWeight: 'bold', fontSize: 16 },
-  buttonSecondary: { marginTop: 20, alignItems: 'center' },
-  buttonSecondaryText: { color: '#2f6fed', fontSize: 14 },
+  buttonSecondary: { 
+    backgroundColor: '#2686b365',
+    marginTop: 20, 
+    alignItems: 'center', 
+    padding: 16,
+    borderRadius: 10,
+},
+  buttonSecondaryText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
 });

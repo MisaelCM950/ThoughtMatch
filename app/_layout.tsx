@@ -1,9 +1,8 @@
-import { Stack } from 'expo-router';
+import { Redirect, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { supabase } from '../lib/supabase';
-import Auth from './auth';
 
 export default function RootLayout() {
   const [session, setSession] = useState<any>(null);
@@ -30,16 +29,16 @@ export default function RootLayout() {
     );
   }
 
-  if (!session) {
-    return <Auth />;
-  }
-
   return (
     <KeyboardProvider>
-        <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="chat" />
-        </Stack>
+        <Stack screenOptions={{headerShown: false}}>
+            <Stack.Screen name="auth"/>
+            <Stack.Screen name ='signup'/>
+            <Stack.Screen name="(tabs)"/>
+            <Stack.Screen name = 'chat' options={{headerShown: true}}/>
+            </Stack>
+
+            {!session ? <Redirect href="/auth"/> : <Redirect href="/(tabs)"/>}
     </KeyboardProvider>
   );
 }
