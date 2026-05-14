@@ -11,66 +11,71 @@ export default function HomeScreen() {
 
 
     const handleMatch = async () => {
-        if(thought.trim().length < 5) {
-            alert('Too short. Write a bit more to find a better match');
-            return;
-        }
-        setStatus('matching');
+  if (thought.trim().length < 5) {
+    alert('Too short. Write a bit more to find a better match');
+    return;
+  }
 
-        try {
-            const {data: {user}} = await supabase.auth.getUser();
-            if(!user) throw new Error("No user found");
-            
-            const { data, error } = await supabase.functions.invoke('match-thought', {
-                body: { 
-                    thought: thought, 
-                    userId: user.id 
-                }      
-                
-            });
-            if(data?.match) {
-                const {room_id, alreadyMatched, content} = data.match;
-                if(alreadyMatched) {
-                    Alert.alert(
-                        "Existing Match",
-                        `You are already talking to someone about "${data.match.content}".`,
-                        [
-                            {
-                                text: "Go to Chat",
-                                onPress: ()=> router.push({
-                                    pathname: '/chat',
-                                    params: {roomId: room_id, thought: content},
-                                })
-                            },
-                            {text: "Cancel", style: 'cancel', onPress: ()=> (setStatus('idle'))}
-                        ]
-                    );
-                    return;
-                } else {
-                    console.log("New Match Found!")
-                }
-                console.log("You matched with someone thinking about:", data.match.content);
-                setRoomId(room_id)
-                setStatus('matched');
-                setTimeout(() => {
-                    router.push({
-                        pathname: '/chat',
-                        params: {
-                            roomId: room_id,
-                            thought: thought
-                        }
-                    })
-                }, 1000);
-            } else {
-                alert("No matches yet. You're the first one thinking this! We'll notify you when a match is found.");
+  setStatus('matching');
+
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error("No user found");
+
+    const { data, error } = await supabase.functions.invoke('match-thought', {
+      body: { thought, userId: user.id }
+    });
+
+    if (error) throw error;
+
+    if (data?.match) {
+      const { room_id, alreadyMatched, content } = data.match;
+
+      if (alreadyMatched) {
+        Alert.alert(
+          "Existing Match",
+          `You're already in a conversation about "${content}".`,
+          [
+            {
+              text: "Go to Chat",
+              onPress: () => {
                 setStatus('idle')
-            } 
-            } catch (e: any) {
-                console.error('Match error:', e);
-                setStatus('idle');
-                alert('Matching failed: ' + e.message);
-            }
+                setThought('');
+                router.push({
+                pathname: '/chat',
+                params: { roomId: room_id, thought: content }
+              })}
+            },
+            { text: "Cancel", style: 'cancel', onPress: () => {
+                setStatus('idle')
+                setThought('');
+            }}
+          ], { onDismiss: ()=> setStatus('idle')}
+        );
+      } else {
+        console.log("New Match Found!");
+        setStatus('matched');
+        setTimeout(() => {
+            setStatus('idle')
+          router.push({
+            pathname: '/chat',
+            params: { roomId: room_id, thought: thought }
+          });
+        }, 1000);
+      }
+      setThought('');
+    } else {
+      alert("No matches yet. You're the first one thinking this! We'll notify you when a match is found.");
+      setStatus('idle');
+      setThought('');
     }
+
+  } catch (e: any) {
+    console.error('Match error:', e);
+    setStatus('idle'); 6144
+    alert('Matching failed: ' + e.message);
+  }
+};
   return (
     <ScrollView style={styles.container}> 
       <View style={styles.content}>
@@ -79,6 +84,7 @@ export default function HomeScreen() {
       
       <TextInput 
         placeholder="Type your thought…" 
+        placeholderTextColor="#808080"
         style={styles.input} 
         value={thought} 
         onChangeText={setThought} 

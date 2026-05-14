@@ -7,6 +7,7 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
+  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -36,6 +37,59 @@ serve(async (req) => {
     if (!result.data) throw new Error("OpenAI Error: " + JSON.stringify(result))
     const embedding = result.data[0].embedding
 
+    const { data: matches, error: matchError } = await supabaseClient.rpc('match_thoughts', {
+      query_embedding: embedding,
+      match_threshold: 0.5, 
+      match_count: 1,      
+      current_user_id: userId,
+    })
+
+    if (matchError) throw matchError
+
+    if (matches && matches.length > 0) {
+      const match = matches[0]
+      const otherUserId = match.user_id
+
+      const { data: existingRoom } = await supabaseClient
+        .from('match_rooms')
+        .select('id')
+        .or(`and(user_1.eq.${userId},user_2.eq.${otherUserId}),and(user_1.eq.${otherUserId},user_2.eq.${userId})`)
+        .eq('thought_content', match.content)
+        .maybeSingle()
+
+      let roomId
+      let alreadyMatched = false
+
+      if (existingRoom) {
+        roomId = existingRoom.id
+        alreadyMatched = true
+      } else {
+        const { data: newRoom, error: roomError } = await supabaseClient
+          .from('match_rooms')
+          .insert({
+            user_1: userId,
+            user_2: otherUserId,
+            thought_content: match.content
+          })
+          .select()
+          .single()
+
+        if (roomError) throw roomError
+        roomId = newRoom.id
+      }
+
+      return new Response(JSON.stringify({ 
+        match: {
+          room_id: roomId,
+          content: match.content,
+          alreadyMatched: alreadyMatched
+        }
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      })
+    }
+
     const { error: insertError } = await supabaseClient
       .from('thoughts')
       .insert({
@@ -46,68 +100,10 @@ serve(async (req) => {
 
     if (insertError) throw insertError
 
-    const { data: matches, error: matchError } = await supabaseClient.rpc('match_thoughts', {
-      query_embedding: embedding,
-      match_threshold: 0.5, 
-      match_count: 1,      
-      current_user_id: userId,
+    return new Response(JSON.stringify({ match: null }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 200,
     })
-
-    console.log("Current User ID:", userId);
-    console.log("Matches found from DB:", JSON.stringify(matches));
-
-    if (matchError) {
-        console.log("SQL Error:", matchError);
-        throw matchError;
-    }
-    if(matches && matches.length > 0) {
-        const match = matches[0];
-        const otherUserId = match.user_id;
-        console.log(`MATCH FOUND! Score: ${matches[0].similarity} between "${thought}" and "${matches[0].content}"`);
-
-        const {data: existingRoom } = await supabaseClient
-            .from('match_rooms')
-            .select('id')
-            .eq('thought_content', match.content)
-            .or(`and(user_1.eq.${userId},user_2.eq.${otherUserId}),and(user_1.eq.${otherUserId},user_2.eq.${userId})`)
-            .maybeSingle();
-
-        let roomId;
-
-        if(existingRoom) {
-            roomId = existingRoom.id;
-        } else {
-            const { data: newRoom, error: roomError } = await supabaseClient
-                .from('match_rooms')
-                .insert({
-                    user_1: userId,
-                    user_2: otherUserId,
-                    thought_content: match.content
-                })
-                .select()
-                .single();
-
-                if(roomError) throw roomError;
-                roomId = newRoom.id;
-        }
-
-        return new Response(JSON.stringify({ 
-            match: {
-                ...match, 
-                room_id: existingRoom.id,
-                alreadyMatched: true,
-                matchedUserName: 'someone'
-            }
-        }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-        });
-    }
-    return new Response(JSON.stringify({match: null}), {
-        headers: {...corsHeaders, 'Content-Type' : 'application/json'},
-        status: 200,
-    })
-
 
   } catch (error) {
     return new Response(JSON.stringify({ error: error.message }), {

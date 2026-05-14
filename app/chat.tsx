@@ -14,19 +14,33 @@ export default function Chat() {
     const [user, setUser] = useState<any>(null);
 
     async function fetchOtherParticipant() {
-        const {data: {user: me}} = await supabase.auth.getUser();
-        if(!me) return;
+        const {data: {user}} = await supabase.auth.getUser();
+        if(!user) return;
 
+        const {data: room, error: roomError} = await supabase
+            .from('match_rooms')
+            .select('user_1, user_2')
+            .eq('id', roomId)
+            .single();
 
-        if(user) {
-            const fullName = user.user_metadata?.full_name;
-            setName(fullName || 'No name set')
+        if(roomError || !room) {
+            console.log("Room not found", roomError);
+            return;
         }
+
+        const partnerId = room.user_1 === user.id ? room.user_2 : room.user_1;
+
+        const {data: profile} = await supabase
+            .from('profiles')
+            .select('full_name')
+            .eq('id', partnerId)
+            .single();
+        
+            setOtherUserName(profile?.full_name || 'Someone')
+        
     }
 
-    useEffect(()=> {
-        fetchOtherParticipant();
-    }, [])
+    
     useEffect(()=> {
         supabase.auth.getUser().then(({data}) => setUser(data.user));
     }, [])
@@ -63,6 +77,10 @@ export default function Chat() {
             console.error("Supabase Error Details:", error);
         } 
     };
+
+    useEffect(()=> {
+        fetchOtherParticipant();
+    }, [roomId])
 
     useEffect(()=> {
         const timer = setTimeout(()=> {
@@ -132,7 +150,7 @@ export default function Chat() {
             </Pressable>
         )
     }}/>
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}>
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 35}>
         <FlatList 
             ref={flatListRef} 
             inverted
@@ -164,7 +182,9 @@ export default function Chat() {
                     </View>
             )}}/>
         <View style={styles.messageBar}>
-        <FontAwesome name='plus' size={22} color="#fff"/>
+            <Pressable hitSlop={{top: 15, bottom: 15, left: 15, right: 15}}>
+                <FontAwesome name='plus' size={22} color="#fff"/>
+            </Pressable>
             <TextInput 
                 placeholder='Message...'
                 placeholderTextColor='#999'
@@ -172,7 +192,7 @@ export default function Chat() {
                 value= {input} 
                 onChangeText={setInput}
             />
-            <Pressable onPress={sendMessage}>
+            <Pressable onPress={sendMessage} hitSlop={{top: 15, bottom: 15, left: 15, right: 15}} style={({pressed})=> [{opacity: pressed ? 0.5 : 1}]}>
                 <FontAwesome name='send' size={22} color="#fff" style={{paddingVertical: 5}}/>
             </Pressable>
         </View>
@@ -249,7 +269,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         paddingVertical: 10,
         backgroundColor: '#000',
-        marginBottom: 30,
+        marginBottom: Platform.OS === 'android' ? 50 : 30,
         marginTop: 10,
         borderTopWidth: 0.5,
         borderColor: '#333'

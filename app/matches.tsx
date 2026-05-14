@@ -63,6 +63,7 @@ export default function MatchesScreen() {
             <Text style={styles.matchThought}>"{item.thought_content}"</Text>
             <Text style={styles.subText}>Tap to chat</Text>
         </TouchableOpacity>
+
       )}
       ListEmptyComponent={
         <View>
@@ -72,12 +73,16 @@ export default function MatchesScreen() {
             </TouchableOpacity>
         </View>}
     />
+    <TouchableOpacity style={styles.button} onPress={()=>router.back()}>
+        <Text style={styles.buttonText}>Back</Text>    
+    </TouchableOpacity>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
     button: {
+        marginBottom: 50,
         backgroundColor: '#2686b3',
         padding: 16,
         borderRadius: 10,
