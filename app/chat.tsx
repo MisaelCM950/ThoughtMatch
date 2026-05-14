@@ -2,10 +2,15 @@ import { supabase } from '@/lib/supabase';
 import { FontAwesome } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { FlatList, LayoutAnimation, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { FlatList, LayoutAnimation, Modal, Platform, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
-export default function Chat() {
+export default function ChatScreen() {
+
+    const [menuVisible, setMenuVisible] = useState(false);
+    const openMenu = ()=> setMenuVisible(true);
+    const closeMenu = ()=> setMenuVisible(false);
+
     const flatListRef = useRef<FlatList>(null);
     const [otherUserName, setOtherUserName] = useState('Someone')
     const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null)
@@ -145,12 +150,13 @@ export default function Chat() {
             </Pressable>
         ),
         headerRight: () => (
-            <Pressable style={{paddingHorizontal: 20}} onPress={()=> console.log('Menu Open')}>
+            <Pressable style={{paddingHorizontal: 20}} onPress={() =>{
+                openMenu();}}>
                 <FontAwesome name='ellipsis-h' size={22} color='#fff'/>
             </Pressable>
         )
     }}/>
-    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 35}>
+    <KeyboardAvoidingView style={[styles.container, {flex: 1}]} behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 35}>
         <FlatList 
             ref={flatListRef} 
             inverted
@@ -196,6 +202,44 @@ export default function Chat() {
                 <FontAwesome name='send' size={22} color="#fff" style={{paddingVertical: 5}}/>
             </Pressable>
         </View>
+        <Modal
+            animationType='slide'
+            transparent={true}
+            visible={menuVisible}
+            onRequestClose={closeMenu}
+        >
+            <View style={styles.modalOverlay}>
+                <Pressable style={styles.modalBackdrop} onPress={closeMenu}>
+                    <Pressable style={styles.customSheet} onPress={(e)=> e.stopPropagation()}>
+                        <View style={styles.dragHandle}></View>
+                        <Text style={styles.modalTitle}>Chat Options</Text>
+
+                        <TouchableOpacity style={styles.modalButton} onPress={()=> {
+                            console.log("Report");
+                            closeMenu();
+                        }}>
+                            <Text style={styles.buttonText}>Report User</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.modalButton} onPress={()=> {
+                            console.log("Report");
+                            closeMenu();
+                        }}>
+                            <Text style={[styles.buttonText, {color: '#fc4545'}]}>Abandon Chat</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={[styles.modalButton, {borderBottomWidth: 0, marginTop: 10}]} onPress={()=> {
+                            closeMenu();
+                        }}>
+                            <Text style={{color: '#2f6fed', fontWeight: 'bold', fontSize: 18}}>Cancel</Text>
+                        </TouchableOpacity>
+
+                        
+                    </Pressable>
+                </Pressable>
+            </View>
+
+        </Modal>
     </KeyboardAvoidingView>
     </>
   );
@@ -223,9 +267,15 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#4d4d4d',
         paddingVertical: 20,
-        marginHorizontal: 20,
+        marginHorizontal: 10,
         marginTop: 15,
         borderRadius: 20
+    },
+    buttonText: {
+        color: '#fff',
+        fontSize: 18,
+        textAlign: 'center',
+        fontWeight: '600'
     },
     contentContainer: {
         paddingBottom: 20,
@@ -292,4 +342,48 @@ const styles = StyleSheet.create({
         paddingHorizontal: 15,
         paddingVertical: 10
       },
+      modalOverlay: {
+        flex: 1,
+        backgroundColor: 'transparent'
+      },
+      modalBackdrop: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        justifyContent: 'flex-end'
+      },
+      customSheet: {
+        backgroundColor: '#1c1c1e',
+        borderTopLeftRadius: 25,
+        borderTopRightRadius: 25,
+        padding: 20,
+        paddingBottom: 40,
+        borderWidth: 1,
+        borderColor: '#333'
+      },
+      dragHandle: {
+        width: 40,
+        height: 5,
+        backgroundColor: '#3a3a3c',
+        borderRadius: 3,
+        alignSelf: 'center',
+        marginBottom: 15,
+      },
+      modalTitle: {
+        color: '#666',
+        fontSize: 13,
+        textAlign: 'center',
+        marginBottom: 20,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+      },
+      modalButton: {
+        paddingVertical: 18,
+        borderBottomWidth: 0.5,
+        borderBottomColor: '#333',
+        width: '100%',
+        alignItems: 'center'
+      }
 });
+
+
+

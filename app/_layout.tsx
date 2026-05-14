@@ -1,6 +1,8 @@
+import { BottomSheetModalProvider } from '@gorhom/bottom-sheet';
 import { Redirect, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 import { supabase } from '../lib/supabase';
 
@@ -30,15 +32,19 @@ export default function RootLayout() {
   }
 
   return (
-    <KeyboardProvider>
-        <Stack screenOptions={{headerShown: false}}>
-            <Stack.Screen name="auth"/>
-            <Stack.Screen name ='signup'/>
-            <Stack.Screen name="(tabs)"/>
-            <Stack.Screen name = 'chat' options={{headerShown: true}}/>
-            </Stack>
+    <GestureHandlerRootView style={{flex: 1}}>
+        <BottomSheetModalProvider>
+            <KeyboardProvider>
+                <Stack screenOptions={{headerShown: false}}>
+                    <Stack.Screen name="auth"/>
+                    <Stack.Screen name ='signup'/>
+                    <Stack.Screen name="(tabs)"/>
+                    <Stack.Screen name = 'chat' options={{headerShown: true}}/>
+                    </Stack>
 
-            {!session ? <Redirect href="/auth"/> : <Redirect href="/(tabs)"/>}
-    </KeyboardProvider>
+                    {!session ? <Redirect href="/auth"/> : <Redirect href="/(tabs)"/>}
+            </KeyboardProvider>
+        </BottomSheetModalProvider>
+    </GestureHandlerRootView>
   );
 }
