@@ -1,52 +1,75 @@
 import { supabase } from '@/lib/supabase';
 import { useRouter, } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function MatchesScreen() {
     const [rooms, setRooms] = useState<any[]>([]);
     const router = useRouter();
 
+    const channelRef = useRef<any>(null);
     useEffect(() => {
+        let isMounted = true;
+
         const fetchRooms = async () => {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                console.log("No user found yet")
-                return;
-            }
-            console.log('Fetching rooms for User ID:', user.id)
-            const { data, error } = await supabase
+            if (!user || !isMounted) return;
+
+            const { data } = await supabase
                 .from('match_rooms')
                 .select('*')
                 .or(`user_1.eq.${user.id},user_2.eq.${user.id}`)
+                .or(`abandoned_by.is.null,abandoned_by.neq.${user.id}`)
                 .order('created_at', { ascending: false });
 
-            if (data) {
+            if (data && isMounted) {
                 setRooms(data);
-                console.log("Rooms Data:", data);
-                console.log("Fetch Error:", error);
             }
         };
 
-        fetchRooms();
+        const setup = async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user || !isMounted) return;
+
+            await fetchRooms();
+            if (!isMounted) return;
+
         
-
-        const channel = supabase
-        .channel('matches-realtime')
-        .on('postgres_changes', 
-            { event: '*', schema: 'public', table: 'match_rooms' }, 
-            (payload) => {
-                console.log("Change detected in matches!", payload);
-                fetchRooms();
+            if (channelRef.current) {
+                supabase.removeChannel(channelRef.current);
             }
-        )
-        .subscribe();
 
-            return () => {supabase.removeChannel(channel);};
+            const newChannel = supabase.channel(`matches-${user.id}-${Date.now()}`);
+            
+            newChannel
+                .on('postgres_changes', 
+                    { event: 'DELETE', schema: 'public', table: 'match_rooms' }, 
+                    (payload: any) => {
+                        console.log("REALTIME PAYLOAD RECEIVED:", payload);
+                        if (isMounted) fetchRooms();
+                    }
+                )
+                .subscribe((status: string) => {
+                    if (status === 'SUBSCRIBED') {
+                        console.log("Realtime: Locked and loaded");
+                    }
+                });
 
+            channelRef.current = newChannel;
+        };
+
+        setup();
+
+        return () => {
+            isMounted = false;
+            if (channelRef.current) {
+                console.log("Cleaning up matches channel...");
+                supabase.removeChannel(channelRef.current);
+                channelRef.current = null;
+            }
+        };
     }, []);
-
-  return (
+  return (  
     <View style={styles.container}>
         <Text style={styles.title}>Your Matches</Text>
     <FlatList
@@ -100,7 +123,7 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         marginBottom: 10,
         borderLeftWidth: 4,
-        borderLeftColor: '#2f6fed',
+        borderLeftColor: '#2686b3',
     },
     matchThought: {
         color: '#fff',

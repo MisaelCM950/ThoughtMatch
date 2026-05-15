@@ -119,13 +119,13 @@ const styles = StyleSheet.create({
     chatsButton: {
         marginTop: 20,
         borderWidth: 1,
-        borderColor: '#2f6fed',
+        borderColor: '#2686b3',
         paddingVertical: 16,
         borderRadius: 8,
         alignItems: 'center'
     },
     chatsButtonText: {
-        color: '#2f6fed',
+        color: '#2686b3',
         fontWeight: '600',
         fontSize: 16
     },
@@ -166,7 +166,7 @@ const styles = StyleSheet.create({
         paddingVertical: 16,
         borderRadius: 10,
         alignItems: 'center',
-        backgroundColor: '#2f6fed',
+        backgroundColor: '#2686b3',
       },
     buttonText: {
         color: '#FFFFFF',

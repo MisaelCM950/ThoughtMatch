@@ -7,9 +7,14 @@ import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 export default function ChatScreen() {
 
+    const [isPartnerGone, setIsPartnerGone] = useState(false);
+    const [isConfirmingAbandon, setIsConfirmingAbandon] = useState(false);
     const [menuVisible, setMenuVisible] = useState(false);
     const openMenu = ()=> setMenuVisible(true);
-    const closeMenu = ()=> setMenuVisible(false);
+    const closeMenu = ()=> {
+        setIsConfirmingAbandon(false);
+        setMenuVisible(false)
+    };
 
     const flatListRef = useRef<FlatList>(null);
     const [otherUserName, setOtherUserName] = useState('Someone')
@@ -24,9 +29,13 @@ export default function ChatScreen() {
 
         const {data: room, error: roomError} = await supabase
             .from('match_rooms')
-            .select('user_1, user_2')
+            .select('user_1, user_2, abandoned_by')
             .eq('id', roomId)
             .single();
+        
+        if(room?.abandoned_by && room.abandoned_by !== user.id) {
+            setIsPartnerGone(true);
+        }
 
         if(roomError || !room) {
             console.log("Room not found", roomError);
@@ -44,6 +53,8 @@ export default function ChatScreen() {
             setOtherUserName(profile?.full_name || 'Someone')
         
     }
+
+    
 
     
     useEffect(()=> {
@@ -131,11 +142,40 @@ export default function ChatScreen() {
             };
     }, [roomId]);
 
+    
+
     const RenderHeader = () => (
         <View style={styles.matchContainer}>
             <Text style={styles.matchText}> You matched on: <Text style={styles.highlightText}>{thought}</Text> with <Text style={styles.highlightText}>{otherUserName}</Text></Text>
         </View>
     )
+
+    const handleAbandonChat = async () => {
+        try {
+            const {error} = await supabase
+                .from('match_rooms')
+                .update({abandoned_by: user.id})
+                .eq('id', roomId)
+                
+            if(error) throw error;
+            closeMenu();
+            router.replace('/(tabs)')
+        } catch (error: any){
+            console.error('Error abandoning chat:', error.message);
+            alert("Could not delete chat. Try again later.")
+        }
+    };
+
+    const handleFinalDelete = async () => {
+        const {error} = await supabase
+            .from('match_rooms')
+            .delete()
+            .eq('id', roomId)
+
+        if (!error) {
+            router.replace('/(tabs)')
+        }
+    }
 
   return (
     <>
@@ -187,6 +227,14 @@ export default function ChatScreen() {
                         </View>
                     </View>
             )}}/>
+            {isPartnerGone ? (
+                <View style={styles.abandonedContainer}>
+                    <Text style={styles.abandonedText}>{otherUserName} has left the chat</Text>
+                    <TouchableOpacity onPress={handleFinalDelete} style={styles.finishButton}>
+                        <Text style={styles.finishButtonText}>Close Chat</Text>
+                    </TouchableOpacity>
+                </View>
+            ):(
         <View style={styles.messageBar}>
             <Pressable hitSlop={{top: 15, bottom: 15, left: 15, right: 15}}>
                 <FontAwesome name='plus' size={22} color="#fff"/>
@@ -202,6 +250,7 @@ export default function ChatScreen() {
                 <FontAwesome name='send' size={22} color="#fff" style={{paddingVertical: 5}}/>
             </Pressable>
         </View>
+        )}
         <Modal
             animationType='slide'
             transparent={true}
@@ -212,6 +261,8 @@ export default function ChatScreen() {
                 <Pressable style={styles.modalBackdrop} onPress={closeMenu}>
                     <Pressable style={styles.customSheet} onPress={(e)=> e.stopPropagation()}>
                         <View style={styles.dragHandle}></View>
+                        {!isConfirmingAbandon ? (
+                            <>                        
                         <Text style={styles.modalTitle}>Chat Options</Text>
 
                         <TouchableOpacity style={styles.modalButton} onPress={()=> {
@@ -222,11 +273,24 @@ export default function ChatScreen() {
                         </TouchableOpacity>
 
                         <TouchableOpacity style={styles.modalButton} onPress={()=> {
-                            console.log("Report");
-                            closeMenu();
+                            setIsConfirmingAbandon(true);
                         }}>
                             <Text style={[styles.buttonText, {color: '#fc4545'}]}>Abandon Chat</Text>
                         </TouchableOpacity>
+                        </>
+                        ): (
+                            <>
+                                <Text style={styles.modalTitle}>Are you absolutely sure?</Text>
+                                <Text style={styles.modalSubtitle}>This will delete the chat for both users and cannot be undone</Text>
+                                <TouchableOpacity style={styles.modalButton} onPress={handleAbandonChat}>
+                                    <Text style={[styles.buttonText, {color: '#FF3B30', fontWeight: '800'}]}>Yes, Abandon Chat</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity style={styles.modalButton} onPress={()=> setIsConfirmingAbandon(false)}>
+                                    <Text style={styles.buttonText}>No, Keep Chatting</Text>
+                                </TouchableOpacity>
+                            </>
+                        )}
 
                         <TouchableOpacity style={[styles.modalButton, {borderBottomWidth: 0, marginTop: 10}]} onPress={()=> {
                             closeMenu();
@@ -246,6 +310,30 @@ export default function ChatScreen() {
 }
 
 const styles = StyleSheet.create({
+    abandonedContainer: {
+        backgroundColor: '#1c1c1e',
+        padding: 20,
+        borderTopWidth: 1,
+        borderTopColor: '#333',
+        alignItems: 'center'
+    },
+    abandonedText: {
+        fontSize: 20,
+        color: '#999',
+        marginBottom: 10,
+        fontStyle: 'italic'
+    },
+    finishButton: {
+       backgroundColor: '#2686b3',
+       paddingVertical: 10,
+       paddingHorizontal: 20,
+       borderRadius: 8
+    },
+    finishButtonText: {
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 16,
+    },
     timeText: {
         color: '#666',
         fontSize: 11,
@@ -292,7 +380,7 @@ const styles = StyleSheet.create({
         borderRadius: 18
     },
     bubbleMe: {
-        backgroundColor: '#2f6fed',
+        backgroundColor: '#2686b3',
         borderBottomRightRadius: 4
     },
     bubbleOther: {
@@ -345,6 +433,14 @@ const styles = StyleSheet.create({
       modalOverlay: {
         flex: 1,
         backgroundColor: 'transparent'
+      },
+      modalSubtitle: {
+        color: '#999',
+        fontSize: 16,
+        textAlign: 'center',
+        paddingHorizontal: 20,
+        marginBottom: 20,
+        lineHeight: 20,
       },
       modalBackdrop: {
         ...StyleSheet.absoluteFillObject,
