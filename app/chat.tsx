@@ -1,102 +1,35 @@
-import { supabase } from '@/lib/supabase';
+import { useChatRoom } from '@/hooks/useChatRooms';
 import { FontAwesome } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { FlatList, LayoutAnimation, Modal, Platform, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, Modal, Platform, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 export default function ChatScreen() {
+    const {roomId, thought} = useLocalSearchParams();
+    const router = useRouter();
 
-    const [isPartnerGone, setIsPartnerGone] = useState(false);
     const [isConfirmingAbandon, setIsConfirmingAbandon] = useState(false);
     const [menuVisible, setMenuVisible] = useState(false);
+    const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
+    const [input, setInput] = useState('');
+    const flatListRef = useRef<FlatList>(null);
+
+    const {
+        user,
+        messages,
+        otherUserName,
+        isPartnerGone,
+        sendMessage,
+        handleAbandonChat,
+        handleFinalDelete,
+    } = useChatRoom(roomId)
+
     const openMenu = ()=> setMenuVisible(true);
     const closeMenu = ()=> {
         setIsConfirmingAbandon(false);
         setMenuVisible(false)
     };
-
-    const flatListRef = useRef<FlatList>(null);
-    const [otherUserName, setOtherUserName] = useState('Someone')
-    const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null)
-    const [input, setInput] = useState('');
-    const [messages, setMessages] = useState<any[]>([]);
-    const [user, setUser] = useState<any>(null);
-
-    async function fetchOtherParticipant() {
-        const {data: {user}} = await supabase.auth.getUser();
-        if(!user) return;
-
-        const {data: room, error: roomError} = await supabase
-            .from('match_rooms')
-            .select('user_1, user_2, abandoned_by')
-            .eq('id', roomId)
-            .single();
-        
-        if(room?.abandoned_by && room.abandoned_by !== user.id) {
-            setIsPartnerGone(true);
-        }
-
-        if(roomError || !room) {
-            console.log("Room not found", roomError);
-            return;
-        }
-
-        const partnerId = room.user_1 === user.id ? room.user_2 : room.user_1;
-
-        const {data: profile} = await supabase
-            .from('profiles')
-            .select('full_name')
-            .eq('id', partnerId)
-            .single();
-        
-            setOtherUserName(profile?.full_name || 'Someone')
-        
-    }
-
-    
-
-    
-    useEffect(()=> {
-        supabase.auth.getUser().then(({data}) => setUser(data.user));
-    }, [])
-    const {roomId, thought} = useLocalSearchParams();
-    console.log(roomId)
-    const router = useRouter();
-    
-    const sendMessage = async () => {
-        if(input.trim().length === 0) return;
-        const tempId = Date.now().toString();
-        const textToSend = input;
-        setInput('');
-        
-        const optimisticMessage = {
-            id: tempId,
-            content: textToSend,
-            user_id: user.id,
-            room_id: String(roomId),
-            created_at: new Date().toISOString(),
-            status: 'sending'
-        };
-
-        setMessages((current) => [optimisticMessage, ...current]);
-
-        const {error} = await supabase.from('messages').insert({
-            content: textToSend,
-            user_id: user.id,
-            room_id: String(roomId),
-        });
-        if(error) {
-            setMessages((current)=> current.filter(msg => msg.id !== tempId));
-            alert('Message failed to send. Please try again.')
-            alert("Message failed to send");
-            console.error("Supabase Error Details:", error);
-        } 
-    };
-
-    useEffect(()=> {
-        fetchOtherParticipant();
-    }, [roomId])
 
     useEffect(()=> {
         const timer = setTimeout(()=> {
@@ -110,73 +43,12 @@ export default function ChatScreen() {
         return () => clearTimeout(timer);
     }, [messages]);
 
-    useEffect(()=> {
-        if (!roomId) return;
-
-        const fetchMessages = async () => {
-            const {data} = await supabase
-                .from('messages')
-                .select('*')
-                .eq('room_id', roomId)
-                .order('created_at', {ascending: false});
-                if (data) setMessages(data);
-                console.log("Fetched messages:", data)
-        }
-        fetchMessages();
-        
-        const channel = supabase
-            .channel(`room-${roomId}`)
-            .on('postgres_changes',
-                {event: 'INSERT', schema: 'public', table: 'messages', filter: `room_id=eq.${roomId}`},
-                (payload) => {
-                    setMessages((current) => {
-                        const filtered = current.filter(msg=> !(msg.status === 'sending' && msg.content === payload.new.content));
-                        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                        return [payload.new, ...filtered]
-                    })
-                }
-            )
-            .subscribe();
-            return () => {
-                supabase.removeChannel(channel);
-            };
-    }, [roomId]);
-
-    
-
     const RenderHeader = () => (
         <View style={styles.matchContainer}>
             <Text style={styles.matchText}> You matched on: <Text style={styles.highlightText}>{thought}</Text> with <Text style={styles.highlightText}>{otherUserName}</Text></Text>
         </View>
     )
-
-    const handleAbandonChat = async () => {
-        try {
-            const {error} = await supabase
-                .from('match_rooms')
-                .update({abandoned_by: user.id})
-                .eq('id', roomId)
-                
-            if(error) throw error;
-            closeMenu();
-            router.replace('/(tabs)')
-        } catch (error: any){
-            console.error('Error abandoning chat:', error.message);
-            alert("Could not delete chat. Try again later.")
-        }
-    };
-
-    const handleFinalDelete = async () => {
-        const {error} = await supabase
-            .from('match_rooms')
-            .delete()
-            .eq('id', roomId)
-
-        if (!error) {
-            router.replace('/(tabs)')
-        }
-    }
-
+    
   return (
     <>
     <Stack.Screen options={{
@@ -207,7 +79,8 @@ export default function ChatScreen() {
             }}
             keyboardDismissMode='interactive'
             data={messages} renderItem={({item})=>{
-            const isMe = item.user_id === user?.id;
+            const currentLoggedUserId = user?.id;
+            const isMe = currentLoggedUserId  ? item.user_id === currentLoggedUserId : false;
             const isSelected = selectedMessageId === item.id
             const isSending = item.status
             return (
@@ -246,7 +119,7 @@ export default function ChatScreen() {
                 value= {input} 
                 onChangeText={setInput}
             />
-            <Pressable onPress={sendMessage} hitSlop={{top: 15, bottom: 15, left: 15, right: 15}} style={({pressed})=> [{opacity: pressed ? 0.5 : 1}]}>
+            <Pressable onPress={()=> sendMessage(input, setInput)} hitSlop={{top: 15, bottom: 15, left: 15, right: 15}} style={({pressed})=> [{opacity: pressed ? 0.5 : 1}]}>
                 <FontAwesome name='send' size={22} color="#fff" style={{paddingVertical: 5}}/>
             </Pressable>
         </View>
@@ -282,7 +155,7 @@ export default function ChatScreen() {
                             <>
                                 <Text style={styles.modalTitle}>Are you absolutely sure?</Text>
                                 <Text style={styles.modalSubtitle}>This will delete the chat for both users and cannot be undone</Text>
-                                <TouchableOpacity style={styles.modalButton} onPress={handleAbandonChat}>
+                                <TouchableOpacity style={styles.modalButton} onPress={()=> handleAbandonChat(closeMenu)}>
                                     <Text style={[styles.buttonText, {color: '#FF3B30', fontWeight: '800'}]}>Yes, Abandon Chat</Text>
                                 </TouchableOpacity>
 
@@ -315,7 +188,8 @@ const styles = StyleSheet.create({
         padding: 20,
         borderTopWidth: 1,
         borderTopColor: '#333',
-        alignItems: 'center'
+        alignItems: 'center',
+        marginBottom: Platform.OS === 'android' ? 50 : 0,
     },
     abandonedText: {
         fontSize: 20,
@@ -341,7 +215,7 @@ const styles = StyleSheet.create({
         marginHorizontal: 4
     },
     highlightText: {
-        color: '#2f6Fed',
+        color: '#2686b3',
         fontWeight: 'bold'
     },
     matchText: {
