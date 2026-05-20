@@ -1,10 +1,12 @@
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { LayoutAnimation } from "react-native";
+import { Alert, LayoutAnimation } from "react-native";
 
 export function useChatRoom(roomId: string | string[]) {
     const router = useRouter();
+    const [partnerId, setPartnerId] =useState('');
+    const [partnerThought, setPartnerThought] = useState('');
     const [isPartnerGone, setIsPartnerGone] = useState(false);
     const [messages, setMessages] = useState<any[]>([]);
     const [otherUserName, setOtherUserName] = useState('Someone');
@@ -17,7 +19,7 @@ export function useChatRoom(roomId: string | string[]) {
     
             const {data: room, error: roomError} = await supabase
                 .from('match_rooms')
-                .select('user_1, user_2, abandoned_by')
+                .select('user_1, user_2, user_1_thought, user_2_thought, abandoned_by')
                 .eq('id', roomId)
                 .single();
             
@@ -28,8 +30,11 @@ export function useChatRoom(roomId: string | string[]) {
             if(room?.abandoned_by && room.abandoned_by !== currentUser.id) {
                 setIsPartnerGone(true);
             }
+            const oppositeThought = room.user_1 === currentUser.id ? room.user_2_thought : room.user_1_thought;
+            setPartnerThought(oppositeThought || "A shared thought")
     
-            const partnerId = room.user_1 === currentUser.id ? room.user_2 : room.user_1;
+            const calculatedPartnerId = room.user_1 === currentUser.id ? room.user_2 : room.user_1;
+            setPartnerId(calculatedPartnerId)
     
             const {data: profile} = await supabase
                 .from('profiles')
@@ -51,7 +56,10 @@ export function useChatRoom(roomId: string | string[]) {
                     const {data: {session}} = await supabase.auth.getSession();
                     const currentUser = session?.user?.id
                     if(!currentUser || !isMounted) return;
-        
+                    
+                    if(session?.user) {
+                        setUser(session.user);
+                    }
                     roomChannel = supabase
                         .channel(`room-status-${roomId}-${Date.now()}`)
                         .on('postgres_changes',
@@ -83,6 +91,7 @@ export function useChatRoom(roomId: string | string[]) {
                     if (data && isMounted) setMessages(data);
                 };
                 setupRoomSubscription();
+                fetchOtherParticipant();
                 fetchMessages();
 
                 channel = supabase
@@ -168,13 +177,51 @@ export function useChatRoom(roomId: string | string[]) {
                     router.replace('/(tabs)')
                 }
             }
+
+            const handleSubmittingReport = async (selectedReason: string) => {
+                try{
+                    const {data: {user}} = await supabase.auth.getUser();
+                    if(!user) return;
+
+                    const chatEvidenceSnapshot = messages.slice(-15).map(msg => ({
+                        sender_id: msg.user_id,
+                        text: msg.content,
+                        created_at: msg.created_at
+                    }));
+
+                    
+                    
+                    const {error} = await supabase
+                        .from('reports')
+                        .insert({
+                            reporter_id: user.id,
+                            reported_user_id: partnerId,
+                            room_id: roomId,
+                            reason: selectedReason,
+                            chat_context: chatEvidenceSnapshot
+                        });
+
+                    if(error) throw error;
+
+                    Alert.alert(
+                        "Report Submitted",
+                        "Thank you. Our team will review this conversation and take immediate action if guidelines were broken."
+                    );
+
+                    router.replace('/(tabs)')
+                } catch(error: any) {
+                    Alert.alert("Error submitting report", error.message)
+                }        
+            }
             return {
                 user,
                 messages,
                 otherUserName,
                 isPartnerGone,
+                partnerThought,
                 sendMessage,
                 handleAbandonChat,
-                handleFinalDelete
+                handleFinalDelete,
+                handleSubmittingReport
             };           
 }

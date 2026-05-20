@@ -54,7 +54,7 @@ serve(async (req) => {
         .from('match_rooms')
         .select('id')
         .or(`and(user_1.eq.${userId},user_2.eq.${otherUserId}),and(user_1.eq.${otherUserId},user_2.eq.${userId})`)
-        .eq('thought_content', match.content)
+        .or(`user_1_thought.eq.${match.content},user_2_thought.eq.${match.content}`)
         .maybeSingle()
 
       let roomId
@@ -69,7 +69,8 @@ serve(async (req) => {
           .insert({
             user_1: userId,
             user_2: otherUserId,
-            thought_content: match.content
+            user_1_thought: thought,
+            user_2_thought: match.content
           })
           .select()
           .single()

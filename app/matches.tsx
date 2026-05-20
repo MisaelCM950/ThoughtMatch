@@ -6,6 +6,7 @@ import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native
 export default function MatchesScreen() {
     const [rooms, setRooms] = useState<any[]>([]);
     const router = useRouter();
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null); 
 
     const channelRef = useRef<any>(null);
     useEffect(() => {
@@ -14,6 +15,8 @@ export default function MatchesScreen() {
         const fetchRooms = async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user || !isMounted) return;
+
+            setCurrentUserId(user.id)
 
             const { data } = await supabase
                 .from('match_rooms')
@@ -75,19 +78,22 @@ export default function MatchesScreen() {
     <FlatList
       data={rooms}
       keyExtractor={(item)=> item.id}
-      renderItem={({item}) =>(
+      renderItem={({item}) =>{
+        const myThought = item.user_1 === currentUserId ? item.user_1_thought : item.user_2_thought;
+        const partnerThought = item.user_1 === currentUserId ? item.user_2_thought : item.user_1_thought
+        return (
         <TouchableOpacity
             style={styles.chatCard}
             onPress={() => router.push({
                 pathname: '/chat',
-                params: {roomId: item.id, thought: item.thought_content}
+                params: {roomId: item.id, thought: partnerThought}
             })}
         >
-            <Text style={styles.matchThought}>"{item.thought_content}"</Text>
+            <Text style={styles.matchThought}>"{myThought}"</Text>
             <Text style={styles.subText}>Tap to chat</Text>
         </TouchableOpacity>
 
-      )}
+  )}}
       ListEmptyComponent={
         <View>
             <Text style={{color: 'gray'}}>No matches yet. Go think something!</Text>

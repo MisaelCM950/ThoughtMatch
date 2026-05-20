@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "465589897931",
+    "project_id": "thoughtmatch-a1e41",
+    "storage_bucket": "thoughtmatch-a1e41.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:465589897931:android:c94833a20a462b4048e94e",
+        "android_client_info": {
+          "package_name": "com.misa_cm.ThoughtMatch"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDRzTf1lmSf8D_R487kwqoUvwzTA_rTW3M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

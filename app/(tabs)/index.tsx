@@ -1,9 +1,11 @@
+import { useNotifications } from '@/hooks/useNotifications';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function HomeScreen() {
+    const pushToken = useNotifications();
     const [thought, setThought] = useState('');
     const [status, setStatus] = useState<'idle' | 'matching'  | 'queued' | 'matched'>('idle');
     const [roomId, setRoomId] = useState<string | null>(null);
@@ -189,3 +191,5 @@ const styles = StyleSheet.create({
         position: 'absolute',
     },
 });
+
+

@@ -9,6 +9,7 @@ export default function ChatScreen() {
     const {roomId, thought} = useLocalSearchParams();
     const router = useRouter();
 
+    const [isReporting, setIsReporting] = useState(false);
     const [isConfirmingAbandon, setIsConfirmingAbandon] = useState(false);
     const [menuVisible, setMenuVisible] = useState(false);
     const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null);
@@ -20,6 +21,7 @@ export default function ChatScreen() {
         messages,
         otherUserName,
         isPartnerGone,
+        partnerThought,
         sendMessage,
         handleAbandonChat,
         handleFinalDelete,
@@ -45,7 +47,7 @@ export default function ChatScreen() {
 
     const RenderHeader = () => (
         <View style={styles.matchContainer}>
-            <Text style={styles.matchText}> You matched on: <Text style={styles.highlightText}>{thought}</Text> with <Text style={styles.highlightText}>{otherUserName}</Text></Text>
+            <Text style={styles.matchText}> You matched on: <Text style={styles.highlightText}>{partnerThought}</Text> with <Text style={styles.highlightText}>{otherUserName}</Text></Text>
         </View>
     )
     
