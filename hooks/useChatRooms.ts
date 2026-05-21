@@ -39,7 +39,7 @@ export function useChatRoom(roomId: string | string[]) {
             const {data: profile} = await supabase
                 .from('profiles')
                 .select('full_name')
-                .eq('id', partnerId)
+                .eq('id',calculatedPartnerId)
                 .single();
             
                 setOtherUserName(profile?.full_name || 'Someone')
@@ -191,7 +191,7 @@ export function useChatRoom(roomId: string | string[]) {
 
                     
                     
-                    const {error} = await supabase
+                    const {error: reportError} = await supabase
                         .from('reports')
                         .insert({
                             reporter_id: user.id,
@@ -201,7 +201,16 @@ export function useChatRoom(roomId: string | string[]) {
                             chat_context: chatEvidenceSnapshot
                         });
 
-                    if(error) throw error;
+                    if(reportError) throw reportError;
+
+                    const {error: abandonError} = await supabase
+                        .from('match_rooms')
+                        .update({abandoned_by: user.id})
+                        .eq('id', roomId);
+                    
+                    if(abandonError) {
+                        console.error("Silent error auto-abandoning room:", abandonError.message);
+                    }
 
                     Alert.alert(
                         "Report Submitted",
@@ -225,3 +234,4 @@ export function useChatRoom(roomId: string | string[]) {
                 handleSubmittingReport
             };           
 }
+

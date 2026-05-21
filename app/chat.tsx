@@ -25,12 +25,14 @@ export default function ChatScreen() {
         sendMessage,
         handleAbandonChat,
         handleFinalDelete,
+        handleSubmittingReport,
     } = useChatRoom(roomId)
 
     const openMenu = ()=> setMenuVisible(true);
     const closeMenu = ()=> {
         setIsConfirmingAbandon(false);
         setMenuVisible(false)
+        setIsReporting(false);
     };
 
     useEffect(()=> {
@@ -136,13 +138,12 @@ export default function ChatScreen() {
                 <Pressable style={styles.modalBackdrop} onPress={closeMenu}>
                     <Pressable style={styles.customSheet} onPress={(e)=> e.stopPropagation()}>
                         <View style={styles.dragHandle}></View>
-                        {!isConfirmingAbandon ? (
+                        {!isConfirmingAbandon && !isReporting &&  (
                             <>                        
                         <Text style={styles.modalTitle}>Chat Options</Text>
 
                         <TouchableOpacity style={styles.modalButton} onPress={()=> {
-                            console.log("Report");
-                            closeMenu();
+                            setIsReporting(true)
                         }}>
                             <Text style={styles.buttonText}>Report User</Text>
                         </TouchableOpacity>
@@ -153,7 +154,30 @@ export default function ChatScreen() {
                             <Text style={[styles.buttonText, {color: '#fc4545'}]}>Abandon Chat</Text>
                         </TouchableOpacity>
                         </>
-                        ): (
+                        )}
+                        
+                        {isReporting && (
+                            <>
+                                <Text style={styles.modalTitle}>Select a Reason for Reporting</Text>
+                                <TouchableOpacity style={styles.modalButton} onPress={()=> handleSubmittingReport("Harrasment or Bullying")}>
+                                    <Text style={[styles.buttonText, {fontWeight: '800'}]}>Harrasment or Bullying</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity style={styles.modalButton} onPress={()=> handleSubmittingReport("Spam or Scam Attempts")}>
+                                    <Text style={[styles.buttonText, {fontWeight: '800'}]}>Spam or Scam Attempts</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity style={styles.modalButton} onPress={()=> handleSubmittingReport("Inappropriate/Explicit Content")}>
+                                    <Text style={[styles.buttonText, {fontWeight: '800'}]}>Inappropriate/Explicit Content</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity style={styles.modalButton} onPress={()=> handleSubmittingReport("Inappropriate/Explicit Content")}>
+                                    <Text style={[styles.buttonText, {fontWeight: '800'}]}>Other Violation</Text>
+                                </TouchableOpacity>
+                            </>
+                        )}
+                        
+                        {isConfirmingAbandon && (
                             <>
                                 <Text style={styles.modalTitle}>Are you absolutely sure?</Text>
                                 <Text style={styles.modalSubtitle}>This will delete the chat for both users and cannot be undone</Text>
@@ -172,6 +196,7 @@ export default function ChatScreen() {
                         }}>
                             <Text style={{color: '#2f6fed', fontWeight: 'bold', fontSize: 18}}>Cancel</Text>
                         </TouchableOpacity>
+                        
 
                         
                     </Pressable>
