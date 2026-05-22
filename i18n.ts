@@ -1,0 +1,112 @@
+import i18n from "i18next";
+import { initReactI18next } from 'react-i18next';
+
+const resources = {
+    en: {
+        translation: {
+            password: "Password",
+            sign_in: "Sign In",
+            create_account: "Create Account",
+            name: "Name",
+            sign_up: "Sign Up",
+            already_account: "Already have an account?",
+            match_me: "Match Me",
+            chat: "My Chats",
+            what_thought: "What are you thinking about?",
+            home_tab: "Home",
+            profile: "Profile",
+            type_thought: "Type your thought...",
+            logout: 'Log Out',
+            full_name: 'NAME',
+            finding_match: 'Finding Match',
+            matching: 'Matching',
+            alert_match_not_found: "No matches yet. You're the first one thinking this! We'll notify you when a match is found.",
+            
+            matched_on: "You matched on:",
+            with: "with",
+            partner_left: "has left the chat",
+            close_chat: "Close Chat",
+            message_placeholder: "Message...",
+            chat_options: "Chat Options",
+            report_user: "Report User",
+            abandon_chat: "Abandon Chat",
+            report_title: "Select a Reason for Reporting",
+            reason_harassment: "Harassment or Bullying",
+            reason_spam: "Spam or Scam Attempts",
+            reason_explicit: "Inappropriate/Explicit Content",
+            reason_other: "Other Violation",
+            confirm_abandon_title: "Are you absolutely sure?",
+            confirm_abandon_subtitle: "This will delete the chat for both users and cannot be undone",
+            confirm_abandon_yes: "Yes, Abandon Chat",
+            confirm_abandon_no: "No, Keep Chatting",
+            cancel: "Cancel",
+
+            your_matches: "Your Matches",
+            tap_to_chat: "Tap to chat",
+            no_matches_yet: "No matches yet. Go think something!",
+            go_think_btn: "Go Think!",
+            back_btn: "Back"
+        }
+    },
+    es: {
+        translation: {
+            password: "Contraseña",
+            sign_in: "Iniciar Sesión",
+            create_account: "Crear Cuenta",
+            name: "Nombre",
+            sign_up: "Crear Cuenta",
+            already_account: "¿Ya tienes una cuenta?",
+            match_me: "Encontrar Match",
+            chat: "Mis Chats",
+            what_thought: "¿En qué estás pensando?",
+            home_tab: "Home",
+            profile: "Perfil",
+            type_thought: "Escribe tu pensamiento...",
+            logout: 'Cerrar Sesion',
+            full_name: 'NOMBRE',
+            finding_match: 'Encontrando Match',
+            matching: 'Conectando',
+            alert_match_not_found: "Aún no hay coincidencias. ¡Eres el primero en pensarlo! Te avisaremos cuando encontremos una coincidencia.",
+
+            matched_on: "Conectaste en:",
+            with: "con",
+            partner_left: "ha salido del chat",
+            close_chat: "Cerrar Chat",
+            message_placeholder: "Mensaje...",
+            chat_options: "Opciones del Chat",
+            report_user: "Reportar Usuario",
+            abandon_chat: "Abandonar Chat",
+            report_title: "Selecciona un Motivo de Reporte",
+            reason_harassment: "Acoso o Bullying",
+            reason_spam: "Spam o Intentos de Estafa",
+            reason_explicit: "Contenido Inapropiado/Explícito",
+            reason_other: "Otra Violación",
+            confirm_abandon_title: "¿Estás absolutamente seguro?",
+            confirm_abandon_subtitle: "Esto eliminará el chat para ambos usuarios y no se puede deshacer",
+            confirm_abandon_yes: "Sí, Abandonar Chat",
+            confirm_abandon_no: "No, Continuar Chateando",
+            cancel: "Cancelar",
+
+            your_matches: "Mis Chats",
+            tap_to_chat: "Presiona para chatear",
+            no_matches_yet: "No hay conexiones aún. ¡Ve a pensar algo!",
+            go_think_btn: "¡A Pensar!",
+            back_btn: "Volver"
+
+            
+        }
+    }
+};
+
+i18n
+  .use(initReactI18next)
+  .init({
+    resources,
+    lng: 'en', 
+    fallbackLng: 'en',
+    interpolation: {
+      escapeValue: false 
+    }
+  });
+
+export default i18n;

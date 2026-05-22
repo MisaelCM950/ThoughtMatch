@@ -2,6 +2,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function HomeScreen() {
@@ -10,7 +11,7 @@ export default function HomeScreen() {
     const [status, setStatus] = useState<'idle' | 'matching'  | 'queued' | 'matched'>('idle');
     const [roomId, setRoomId] = useState<string | null>(null);
     const router = useRouter();
-
+    const {t} = useTranslation();
 
     const handleMatch = async () => {
   if (thought.trim().length < 5) {
@@ -67,7 +68,7 @@ export default function HomeScreen() {
       }
       setThought('');
     } else {
-      alert("No matches yet. You're the first one thinking this! We'll notify you when a match is found.");
+      alert(t('alert_match_not_found'));
       setStatus('idle');
       setThought('');
     }
@@ -82,10 +83,10 @@ export default function HomeScreen() {
     <ScrollView style={styles.container}> 
       <View style={styles.content}>
         <Text style={styles.titleApp}>ThoughtMatch</Text>
-        <Text style={styles.title}>What are you thinking about?</Text>
+        <Text style={styles.title}>{t("what_thought")}</Text>
       
       <TextInput 
-        placeholder="Type your thought…" 
+        placeholder= {t('type_thought')} 
         placeholderTextColor="#808080"
         style={styles.input} 
         value={thought} 
@@ -97,15 +98,15 @@ export default function HomeScreen() {
             disabled={status === 'matching' || thought.trim().length < 5}
             style={[styles.button, ( status === 'matching' || thought.trim().length < 5) && styles.buttonDisabled]}
             >
-                <Text style={styles.buttonText}>{status === 'matching' ? "Finding Match..." : "Match Me"}</Text>
+                <Text style={styles.buttonText}>{status === t('matching') ? t('finding_match') : t('match_me')}</Text>
         </TouchableOpacity>
 
-        {status === 'matching' && <Text style={styles.statusText}>Matching...</Text>}
+        {status === 'matching' && <Text style={styles.statusText}>{t('matching')}</Text>}
         {status === 'queued' && <Text style={styles.statusText}>No instant match. You're queued</Text>}
         {status === 'matched' && <Text style={styles.statusText}>Matched: Room {roomId}</Text>}
 
         <TouchableOpacity style={styles.chatsButton} onPress={()=> router.push('/matches')}>
-                <Text style={styles.chatsButtonText}>My Chats</Text>
+                <Text style={styles.chatsButtonText}>{t("chat")}</Text>
         </TouchableOpacity>
       </View>
     </ScrollView>

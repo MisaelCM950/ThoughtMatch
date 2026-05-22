@@ -1,12 +1,19 @@
+import { default as i18nInstance } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function HomeScreen() {
     const [name, setName] = useState('User');
     const [email, setEmail] = useState('');
     const router = useRouter();
+    const {t, i18n} = useTranslation();
+
+    const changeLanguage = (langCode: string) => {
+        i18nInstance.changeLanguage(langCode)
+    }
 
     async function getProfile() {
         const {data: {user}} = await supabase.auth.getUser();
@@ -27,7 +34,7 @@ export default function HomeScreen() {
     
   return (
     <View style={styles.container}>
-        <Text style={styles.label}>Full Name</Text>
+        <Text style={styles.label}>{t('full_name')}</Text>
         <Text style={styles.userName}>{name}</Text>
 
         <Text style={styles.label}>Email</Text>
@@ -36,13 +43,46 @@ export default function HomeScreen() {
             onPress={handleSignOut}
             style={styles.logoutButton}
         >
-            <Text style={styles.logoutText}>Logout</Text>
+            <Text style={styles.logoutText}>{t('logout')}</Text>
         </TouchableOpacity>
+        <View style={styles.languageContainer}>
+            <TouchableOpacity style={[styles.langLink, i18n.language?.startsWith('en') && styles.activeLang]} onPress={()=> {changeLanguage('en')}}>
+                <Text style={styles.buttonSecondaryText}>English</Text>
+            </TouchableOpacity>
+            <Text style={styles.divider}>|</Text>
+            <TouchableOpacity style={[styles.langLink, i18n.language?.startsWith('es') && styles.activeLang]} onPress={()=> {changeLanguage('es')}}>
+                <Text style={styles.buttonSecondaryText}>Español</Text>
+            </TouchableOpacity>
+        </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+    buttonSecondaryText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+    buttonSecondary: { 
+        backgroundColor: '#2686b365',
+        marginTop: 20, 
+        alignItems: 'center', 
+        padding: 16,
+        borderRadius: 10,
+    },
+    divider: {
+        color: '#ccc',
+        marginHorizontal: 5
+    },
+    activeLang: {
+        borderBottomWidth: 2,
+        borderBottomColor: '#fff'
+    },
+    langLink: {
+        padding: 10
+    },
+    languageContainer: {
+        flexDirection: 'row',
+        marginTop: 30,
+        alignItems: 'center'
+    },
     userEmail: {
         color: '#fff',
         fontSize: 18,

@@ -1,9 +1,9 @@
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Alert, Keyboard, Platform, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
-
 
 export default function SignUpScreen() {
     const [email, setEmail] = useState('')
@@ -11,6 +11,8 @@ export default function SignUpScreen() {
     const [fullName, setFullName] = useState('');
     const [loading, setLoading] = useState(false);
     const router = useRouter();
+
+    const {t} = useTranslation();
 
     const handleSignUp = async ()=> {
         if(!email || !password || !fullName) {
@@ -41,9 +43,9 @@ export default function SignUpScreen() {
         <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
             <View style={{flex: 1}}>
                 <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-                    <Text style={styles.title}>Create Account</Text>
+                    <Text style={styles.title}>{t('create_account')}</Text>
                     <TextInput
-                        placeholder="Name"
+                        placeholder={t('name')}
                         style={styles.input}
                         placeholderTextColor="#999"
                         onChangeText={setFullName}
@@ -56,7 +58,7 @@ export default function SignUpScreen() {
                     />
 
                     <TextInput
-                        placeholder="Password"
+                        placeholder={t("password")}
                         placeholderTextColor="#999"
                         style={styles.input}
                         secureTextEntry
@@ -68,11 +70,11 @@ export default function SignUpScreen() {
                         onPress={handleSignUp}
                         disabled={loading}
                     >
-                        <Text style={styles.buttonText}>{loading ? "Creating" : "Sign Up"}</Text>
+                        <Text style={styles.buttonText}>{loading ? "Creating" : t('sign_up')}</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity style={{marginTop: 30}}onPress={()=> router.push('/auth')}>
-                        <Text style={{color: '#fff', fontSize: 15}}>Already have an account? <Text style={{borderBottomWidth: 1, borderBottomColor: 'blue', fontWeight: 'bold'}}>Sign in</Text></Text>
+                        <Text style={{color: '#fff', fontSize: 15}}>{t('already_account')} <Text style={{borderBottomWidth: 1, borderBottomColor: 'blue', fontWeight: 'bold'}}>{t('sign_in')}</Text></Text>
                     </TouchableOpacity>
                 </KeyboardAvoidingView>
             </View>

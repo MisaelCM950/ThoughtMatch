@@ -16,8 +16,13 @@ export default function RootLayout() {
       setLoading(false);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange( async (_event, session) => {
+     try{
+        setSession(session);
+     } catch (e: any){
+        console.log("Auth session cleanup:", e.message);
+        await supabase.auth.signOut();
+     }
     });
 
     return () => subscription.unsubscribe();

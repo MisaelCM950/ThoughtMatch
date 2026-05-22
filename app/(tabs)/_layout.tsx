@@ -4,10 +4,11 @@ import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Tabs } from 'expo-router';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-
+  const {t} = useTranslation();
   return (
     <Tabs
       screenOptions={{
@@ -28,7 +29,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profilesettings"
         options={{
-          title: 'Profile',
+          title: t('profile'),
           tabBarIcon: ({ color }) => <IconSymbol size={28} name="person.circle" color={color} />,
         }}
       />

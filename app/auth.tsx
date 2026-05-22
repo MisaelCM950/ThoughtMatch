@@ -1,5 +1,7 @@
+import { default as i18nInstance } from '@/i18n';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { supabase } from '../lib/supabase';
 
@@ -9,18 +11,15 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  const {t, i18n} = useTranslation();
+  const changeLanguage = (langCode: string) => {
+    i18nInstance.changeLanguage(langCode)
+  }
+
   async function signIn() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) Alert.alert("Login Error", error.message);
-    setLoading(false);
-  }
-
-  async function signUp() {
-    setLoading(true);
-    const { data: { session }, error } = await supabase.auth.signUp({ email, password });
-    if (error) Alert.alert("Sign Up Error", error.message);
-    if (!session && !error) Alert.alert('Check your email for a verification link!');
     setLoading(false);
   }
 
@@ -31,7 +30,7 @@ export default function Auth() {
         <Text style={styles.title}>ThoughtMatch</Text>
         
         <TextInput
-          placeholder="email@address.com"
+          placeholder="email@gmail.com"
           placeholderTextColor="#666"
           value={email}
           onChangeText={setEmail}
@@ -40,7 +39,7 @@ export default function Auth() {
         />
 
         <TextInput
-          placeholder="Password"
+          placeholder={t('password')}
           placeholderTextColor="#666"
           value={password}
           onChangeText={setPassword}
@@ -50,12 +49,21 @@ export default function Auth() {
         />
 
         <TouchableOpacity style={styles.buttonPrimary} onPress={signIn} disabled={loading}>
-          {loading ? <ActivityIndicator color="white" /> : <Text style={styles.buttonText}>Sign In</Text>}
+          {loading ? <ActivityIndicator color="white" /> : <Text style={styles.buttonText}>{t('sign_in')}</Text>}
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.buttonSecondary} onPress={()=> {router.push('/signup')}} disabled={loading}>
-          <Text style={styles.buttonSecondaryText}>Create Account</Text>
+          <Text style={styles.buttonSecondaryText}>{t('create_account')}</Text>
         </TouchableOpacity>
+        <View style={styles.languageContainer}>
+            <TouchableOpacity style={[styles.langLink, i18n.language === 'en' && styles.activeLang]} onPress={()=> {changeLanguage('en')}} disabled={loading}>
+                <Text style={styles.buttonSecondaryText}>English</Text>
+            </TouchableOpacity>
+            <Text style={styles.divider}>|</Text>
+            <TouchableOpacity style={[styles.langLink, i18n.language === 'es' && styles.activeLang]} onPress={()=> {changeLanguage('es')}} disabled={loading}>
+                <Text style={styles.buttonSecondaryText}>Español</Text>
+            </TouchableOpacity>
+        </View>
       </View>
     </KeyboardAvoidingView>
     </TouchableWithoutFeedback>
@@ -63,6 +71,22 @@ export default function Auth() {
 }
 
 const styles = StyleSheet.create({
+    divider: {
+        color: '#ccc',
+        marginHorizontal: 5
+    },
+    activeLang: {
+        borderBottomWidth: 2,
+        borderBottomColor: '#fff'
+    },
+    langLink: {
+        padding: 10
+    },
+    languageContainer: {
+        flexDirection: 'row',
+        marginTop: 30,
+        alignItems: 'center'
+    },
   container: { flex: 1, backgroundColor: '#000', justifyContent: 'center', padding: 20 },
   authBox: { width: '100%' },
   title: { color: 'white', fontSize: 32, fontWeight: 'bold', marginBottom: 40, textAlign: 'center' },

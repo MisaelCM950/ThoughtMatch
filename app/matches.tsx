@@ -1,11 +1,13 @@
 import { supabase } from '@/lib/supabase';
-import { useRouter, } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function MatchesScreen() {
     const [rooms, setRooms] = useState<any[]>([]);
     const router = useRouter();
+    const { t } = useTranslation();
     const [currentUserId, setCurrentUserId] = useState<string | null>(null); 
 
     const channelRef = useRef<any>(null);
@@ -37,7 +39,6 @@ export default function MatchesScreen() {
             await fetchRooms();
             if (!isMounted) return;
 
-        
             if (channelRef.current) {
                 supabase.removeChannel(channelRef.current);
             }
@@ -72,13 +73,14 @@ export default function MatchesScreen() {
             }
         };
     }, []);
+
   return (  
     <View style={styles.container}>
-        <Text style={styles.title}>Your Matches</Text>
+        <Text style={styles.title}>{t('your_matches')}</Text>
     <FlatList
       data={rooms}
-      keyExtractor={(item)=> item.id}
-      renderItem={({item}) =>{
+      keyExtractor={(item) => item.id}
+      renderItem={({item}) => {
         const myThought = item.user_1 === currentUserId ? item.user_1_thought : item.user_2_thought;
         const partnerThought = item.user_1 === currentUserId ? item.user_2_thought : item.user_1_thought
         return (
@@ -90,20 +92,19 @@ export default function MatchesScreen() {
             })}
         >
             <Text style={styles.matchThought}>"{myThought}"</Text>
-            <Text style={styles.subText}>Tap to chat</Text>
+            <Text style={styles.subText}>{t('tap_to_chat')}</Text>
         </TouchableOpacity>
-
   )}}
       ListEmptyComponent={
         <View>
-            <Text style={{color: 'gray'}}>No matches yet. Go think something!</Text>
-            <TouchableOpacity style={styles.button} onPress={()=> router.back()}>
-                <Text style={styles.buttonText}>Go Think!</Text>
+            <Text style={{color: 'gray'}}>{t('no_matches_yet')}</Text>
+            <TouchableOpacity style={styles.button} onPress={() => router.back()}>
+                <Text style={styles.buttonText}>{t('go_think_btn')}</Text>
             </TouchableOpacity>
         </View>}
     />
-    <TouchableOpacity style={styles.button} onPress={()=>router.back()}>
-        <Text style={styles.buttonText}>Back</Text>    
+    <TouchableOpacity style={styles.button} onPress={() => router.back()}>
+        <Text style={styles.buttonText}>{t('back_btn')}</Text>    
     </TouchableOpacity>
     </View>
   );

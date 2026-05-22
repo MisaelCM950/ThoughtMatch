@@ -2,12 +2,14 @@ import { useChatRoom } from '@/hooks/useChatRooms';
 import { FontAwesome } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FlatList, Modal, Platform, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 export default function ChatScreen() {
-    const {roomId, thought} = useLocalSearchParams();
+    const { roomId, thought } = useLocalSearchParams();
     const router = useRouter();
+    const { t } = useTranslation();
 
     const [isReporting, setIsReporting] = useState(false);
     const [isConfirmingAbandon, setIsConfirmingAbandon] = useState(false);
@@ -28,16 +30,16 @@ export default function ChatScreen() {
         handleSubmittingReport,
     } = useChatRoom(roomId)
 
-    const openMenu = ()=> setMenuVisible(true);
-    const closeMenu = ()=> {
+    const openMenu = () => setMenuVisible(true);
+    const closeMenu = () => {
         setIsConfirmingAbandon(false);
         setMenuVisible(false)
         setIsReporting(false);
     };
 
-    useEffect(()=> {
-        const timer = setTimeout(()=> {
-            if(messages.length > 0) {
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (messages.length > 0) {
                 flatListRef.current?.scrollToIndex({
                     index: 0,
                     animated: true,
@@ -49,7 +51,12 @@ export default function ChatScreen() {
 
     const RenderHeader = () => (
         <View style={styles.matchContainer}>
-            <Text style={styles.matchText}> You matched on: <Text style={styles.highlightText}>{partnerThought}</Text> with <Text style={styles.highlightText}>{otherUserName}</Text></Text>
+            <Text style={styles.matchText}>
+                {t('matched_on')}{' '}
+                <Text style={styles.highlightText}>{partnerThought}</Text>{' '}
+                {t('with')}{' '}
+                <Text style={styles.highlightText}>{otherUserName}</Text>
+            </Text>
         </View>
     )
     
@@ -60,13 +67,13 @@ export default function ChatScreen() {
         headerStyle: {backgroundColor: '#000'}, 
         headerTintColor: '#fff', 
         headerTitleAlign: 'center',
-        headerLeft: ()=> (
-            <Pressable style={{paddingRight: 20, paddingLeft: 10}} onPress={()=> router.back()}>
+        headerLeft: () => (
+            <Pressable style={{paddingRight: 20, paddingLeft: 10}} onPress={() => router.back()}>
                 <FontAwesome name='chevron-left' size={23} color='#fff'/>
             </Pressable>
         ),
         headerRight: () => (
-            <Pressable style={{paddingHorizontal: 20}} onPress={() =>{
+            <Pressable style={{paddingHorizontal: 20}} onPress={() => {
                 openMenu();}}>
                 <FontAwesome name='ellipsis-h' size={22} color='#fff'/>
             </Pressable>
@@ -76,13 +83,13 @@ export default function ChatScreen() {
         <FlatList 
             ref={flatListRef} 
             inverted
-            keyExtractor={(item)=> item.id} contentContainerStyle={styles.contentContainer} 
+            keyExtractor={(item) => item.id} contentContainerStyle={styles.contentContainer} 
             ListFooterComponent={RenderHeader}
-            onScrollToIndexFailed={(info)=> {
+            onScrollToIndexFailed={(info) => {
                 flatListRef.current?.scrollToOffset({offset: info.averageItemLength * info.index, animated: true});
             }}
             keyboardDismissMode='interactive'
-            data={messages} renderItem={({item})=>{
+            data={messages} renderItem={({item}) => {
             const currentLoggedUserId = user?.id;
             const isMe = currentLoggedUserId  ? item.user_id === currentLoggedUserId : false;
             const isSelected = selectedMessageId === item.id
@@ -92,7 +99,7 @@ export default function ChatScreen() {
                         <View style={{alignItems: isMe ? 'flex-end' : 'flex-start', maxWidth: '75%', opacity: isSending ? 0.7 : 1}}>
                             <Pressable 
                                 style={[styles.bubble, isMe ? styles.bubbleMe : styles.bubbleOther, {alignSelf: isMe ? 'flex-end' : 'flex-start'}]}
-                                onPress={()=> setSelectedMessageId(isSelected ? null : item.id)}
+                                onPress={() => setSelectedMessageId(isSelected ? null : item.id)}
                             >
                                 <Text style={styles.bubbleText}>{item.content}</Text>
                             </Pressable>
@@ -106,9 +113,11 @@ export default function ChatScreen() {
             )}}/>
             {isPartnerGone ? (
                 <View style={styles.abandonedContainer}>
-                    <Text style={styles.abandonedText}>{otherUserName} has left the chat</Text>
+                    <Text style={styles.abandonedText}>
+                        {otherUserName} {t('partner_left')}
+                    </Text>
                     <TouchableOpacity onPress={handleFinalDelete} style={styles.finishButton}>
-                        <Text style={styles.finishButtonText}>Close Chat</Text>
+                        <Text style={styles.finishButtonText}>{t('close_chat')}</Text>
                     </TouchableOpacity>
                 </View>
             ):(
@@ -117,13 +126,13 @@ export default function ChatScreen() {
                 <FontAwesome name='plus' size={22} color="#fff"/>
             </Pressable>
             <TextInput 
-                placeholder='Message...'
+                placeholder={t('message_placeholder')}
                 placeholderTextColor='#999'
                 style={styles.input}
-                value= {input} 
+                value={input} 
                 onChangeText={setInput}
             />
-            <Pressable onPress={()=> sendMessage(input, setInput)} hitSlop={{top: 15, bottom: 15, left: 15, right: 15}} style={({pressed})=> [{opacity: pressed ? 0.5 : 1}]}>
+            <Pressable onPress={() => sendMessage(input, setInput)} hitSlop={{top: 15, bottom: 15, left: 15, right: 15}} style={({pressed}) => [{opacity: pressed ? 0.5 : 1}]}>
                 <FontAwesome name='send' size={22} color="#fff" style={{paddingVertical: 5}}/>
             </Pressable>
         </View>
@@ -136,78 +145,76 @@ export default function ChatScreen() {
         >
             <View style={styles.modalOverlay}>
                 <Pressable style={styles.modalBackdrop} onPress={closeMenu}>
-                    <Pressable style={styles.customSheet} onPress={(e)=> e.stopPropagation()}>
+                    <Pressable style={styles.customSheet} onPress={(e) => e.stopPropagation()}>
                         <View style={styles.dragHandle}></View>
                         {!isConfirmingAbandon && !isReporting &&  (
                             <>                        
-                        <Text style={styles.modalTitle}>Chat Options</Text>
+                        <Text style={styles.modalTitle}>{t('chat_options')}</Text>
 
-                        <TouchableOpacity style={styles.modalButton} onPress={()=> {
+                        <TouchableOpacity style={styles.modalButton} onPress={() => {
                             setIsReporting(true)
                         }}>
-                            <Text style={styles.buttonText}>Report User</Text>
+                            <Text style={styles.buttonText}>{t('report_user')}</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.modalButton} onPress={()=> {
+                        <TouchableOpacity style={styles.modalButton} onPress={() => {
                             setIsConfirmingAbandon(true);
                         }}>
-                            <Text style={[styles.buttonText, {color: '#fc4545'}]}>Abandon Chat</Text>
+                            <Text style={[styles.buttonText, {color: '#fc4545'}]}>{t('abandon_chat')}</Text>
                         </TouchableOpacity>
                         </>
                         )}
                         
                         {isReporting && (
                             <>
-                                <Text style={styles.modalTitle}>Select a Reason for Reporting</Text>
-                                <TouchableOpacity style={styles.modalButton} onPress={()=> handleSubmittingReport("Harrasment or Bullying")}>
-                                    <Text style={[styles.buttonText, {fontWeight: '800'}]}>Harrasment or Bullying</Text>
+                                <Text style={styles.modalTitle}>{t('report_title')}</Text>
+                                <TouchableOpacity style={styles.modalButton} onPress={() => handleSubmittingReport("Harrasment or Bullying")}>
+                                    <Text style={[styles.buttonText, {fontWeight: '800'}]}>{t('reason_harassment')}</Text>
                                 </TouchableOpacity>
 
-                                <TouchableOpacity style={styles.modalButton} onPress={()=> handleSubmittingReport("Spam or Scam Attempts")}>
-                                    <Text style={[styles.buttonText, {fontWeight: '800'}]}>Spam or Scam Attempts</Text>
+                                <TouchableOpacity style={styles.modalButton} onPress={() => handleSubmittingReport("Spam or Scam Attempts")}>
+                                    <Text style={[styles.buttonText, {fontWeight: '800'}]}>{t('reason_spam')}</Text>
                                 </TouchableOpacity>
 
-                                <TouchableOpacity style={styles.modalButton} onPress={()=> handleSubmittingReport("Inappropriate/Explicit Content")}>
-                                    <Text style={[styles.buttonText, {fontWeight: '800'}]}>Inappropriate/Explicit Content</Text>
+                                <TouchableOpacity style={styles.modalButton} onPress={() => handleSubmittingReport("Inappropriate/Explicit Content")}>
+                                    <Text style={[styles.buttonText, {fontWeight: '800'}]}>{t('reason_explicit')}</Text>
                                 </TouchableOpacity>
 
-                                <TouchableOpacity style={styles.modalButton} onPress={()=> handleSubmittingReport("Inappropriate/Explicit Content")}>
-                                    <Text style={[styles.buttonText, {fontWeight: '800'}]}>Other Violation</Text>
+                                <TouchableOpacity style={styles.modalButton} onPress={() => handleSubmittingReport("Inappropriate/Explicit Content")}>
+                                    <Text style={[styles.buttonText, {fontWeight: '800'}]}>{t('reason_other')}</Text>
                                 </TouchableOpacity>
                             </>
                         )}
                         
                         {isConfirmingAbandon && (
                             <>
-                                <Text style={styles.modalTitle}>Are you absolutely sure?</Text>
-                                <Text style={styles.modalSubtitle}>This will delete the chat for both users and cannot be undone</Text>
-                                <TouchableOpacity style={styles.modalButton} onPress={()=> handleAbandonChat(closeMenu)}>
-                                    <Text style={[styles.buttonText, {color: '#FF3B30', fontWeight: '800'}]}>Yes, Abandon Chat</Text>
+                                <Text style={styles.modalTitle}>{t('confirm_abandon_title')}</Text>
+                                <Text style={styles.modalSubtitle}>{t('confirm_abandon_subtitle')}</Text>
+                                <TouchableOpacity style={styles.modalButton} onPress={() => handleAbandonChat(closeMenu)}>
+                                    <Text style={[styles.buttonText, {color: '#FF3B30', fontWeight: '800'}]}>{t('confirm_abandon_yes')}</Text>
                                 </TouchableOpacity>
 
-                                <TouchableOpacity style={styles.modalButton} onPress={()=> setIsConfirmingAbandon(false)}>
-                                    <Text style={styles.buttonText}>No, Keep Chatting</Text>
+                                <TouchableOpacity style={styles.modalButton} onPress={() => setIsConfirmingAbandon(false)}>
+                                    <Text style={styles.buttonText}>{t('confirm_abandon_no')}</Text>
                                 </TouchableOpacity>
                             </>
                         )}
 
-                        <TouchableOpacity style={[styles.modalButton, {borderBottomWidth: 0, marginTop: 10}]} onPress={()=> {
+                        <TouchableOpacity style={[styles.modalButton, {borderBottomWidth: 0, marginTop: 10}]} onPress={() => {
                             closeMenu();
                         }}>
-                            <Text style={{color: '#2f6fed', fontWeight: 'bold', fontSize: 18}}>Cancel</Text>
+                            <Text style={{color: '#2f6fed', fontWeight: 'bold', fontSize: 18}}>{t('cancel')}</Text>
                         </TouchableOpacity>
-                        
-
-                        
                     </Pressable>
                 </Pressable>
             </View>
-
         </Modal>
     </KeyboardAvoidingView>
     </>
   );
 }
+
+// ... styles stay exactly the same as your file!
 
 const styles = StyleSheet.create({
     abandonedContainer: {
