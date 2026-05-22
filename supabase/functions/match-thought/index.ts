@@ -37,6 +37,18 @@ serve(async (req) => {
     if (!result.data) throw new Error("OpenAI Error: " + JSON.stringify(result))
     const embedding = result.data[0].embedding
 
+    const {error: insertError} = await supabaseClient
+        .from('thoughts')
+        .insert({
+            content: thought,
+            user_id: userId,
+            embedding: embedding,
+        })
+
+    if(insertError) {
+        console.error("DATABASE INSERT CRASHED", insertError.message, insertError.details);
+        throw insertError}
+
     const { data: matches, error: matchError } = await supabaseClient.rpc('match_thoughts', {
       query_embedding: embedding,
       match_threshold: 0.5, 
@@ -44,7 +56,9 @@ serve(async (req) => {
       current_user_id: userId,
     })
 
-    if (matchError) throw matchError
+    if (matchError) {
+        console.error("RPC MATCHING CRASHED:", matchError.message, matchError.details);
+        throw matchError}
 
     if (matches && matches.length > 0) {
       const match = matches[0]
@@ -90,16 +104,6 @@ serve(async (req) => {
         status: 200,
       })
     }
-
-    const { error: insertError } = await supabaseClient
-      .from('thoughts')
-      .insert({
-        content: thought,
-        user_id: userId,
-        embedding: embedding,
-      })
-
-    if (insertError) throw insertError
 
     return new Response(JSON.stringify({ match: null }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
