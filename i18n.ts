@@ -21,6 +21,13 @@ const resources = {
             finding_match: 'Finding Match',
             matching: 'Matching',
             alert_match_not_found: "No matches yet. You're the first one thinking this! We'll notify you when a match is found.",
+            new_thought: "New thought",
+            matched: "Matched: Sending",
+            thought_too_short: "Thought Too Short",
+            write_more: "Write a bit more to find a better match.",
+            info_first: "To support meaningful, focused connections, ThoughtMatch limits everyone to a maximum of 3 concurrent active conversations at one time.",
+            info_second: "If you want to match on a new thought, you must open and abandon one of your current chat rooms first!",
+
             
             matched_on: "You matched on:",
             with: "with",
@@ -45,7 +52,8 @@ const resources = {
             tap_to_chat: "Tap to chat",
             no_matches_yet: "No matches yet. Go think something!",
             go_think_btn: "Go Think!",
-            back_btn: "Back"
+            back_btn: "Back",
+            age: 'DOB'
         }
     },
     es: {
@@ -67,6 +75,12 @@ const resources = {
             finding_match: 'Encontrando Match',
             matching: 'Conectando',
             alert_match_not_found: "Aún no hay coincidencias. ¡Eres el primero en pensarlo! Te avisaremos cuando encontremos una coincidencia.",
+            new_thought: "Nuevo pensamiento",
+            matched: "Conectado: Enviando",
+            thought_too_short: "Pensamiento demasiado corto",
+            write_more: "Escribe un poco más para encontrar una mejor coincidencia.",
+            info_first: "Para fomentar conexiones significativas y centradas, ThoughtMatch limita a cada usuario a un máximo de 3 conversaciones activas simultáneas.",
+            info_second: "Si quieres conectar con un nuevo pensamiento, ¡primero debes abrir y abandonar una de tus salas de chat actuales!",
 
             matched_on: "Conectaste en:",
             with: "con",

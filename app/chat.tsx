@@ -83,18 +83,21 @@ export default function ChatScreen() {
         <FlatList 
             ref={flatListRef} 
             inverted
-            keyExtractor={(item) => item.id} contentContainerStyle={styles.contentContainer} 
+            keyExtractor={(item) => item.id} 
+            contentContainerStyle={styles.contentContainer} 
             ListFooterComponent={RenderHeader}
+            style={styles.messageList}
             onScrollToIndexFailed={(info) => {
                 flatListRef.current?.scrollToOffset({offset: info.averageItemLength * info.index, animated: true});
             }}
             keyboardDismissMode='interactive'
-            data={messages} renderItem={({item}) => {
-            const currentLoggedUserId = user?.id;
-            const isMe = currentLoggedUserId  ? item.user_id === currentLoggedUserId : false;
-            const isSelected = selectedMessageId === item.id
-            const isSending = item.status
-            return (
+            data={messages} 
+            renderItem={({item}) => {
+                const currentLoggedUserId = user?.id;
+                const isMe = currentLoggedUserId  ? item.user_id === currentLoggedUserId : false;
+                const isSelected = selectedMessageId === item.id;
+                const isSending = item.status;
+                return (
                     <View style={[styles.messageRow, isMe ? styles.rowMe : styles.rowOther ]}>
                         <View style={{alignItems: isMe ? 'flex-end' : 'flex-start', maxWidth: '75%', opacity: isSending ? 0.7 : 1}}>
                             <Pressable 
@@ -110,33 +113,47 @@ export default function ChatScreen() {
                             )}
                         </View>
                     </View>
-            )}}/>
-            {isPartnerGone ? (
-                <View style={styles.abandonedContainer}>
-                    <Text style={styles.abandonedText}>
-                        {otherUserName} {t('partner_left')}
-                    </Text>
-                    <TouchableOpacity onPress={handleFinalDelete} style={styles.finishButton}>
-                        <Text style={styles.finishButtonText}>{t('close_chat')}</Text>
-                    </TouchableOpacity>
-                </View>
-            ):(
-        <View style={styles.messageBar}>
-            <Pressable hitSlop={{top: 15, bottom: 15, left: 15, right: 15}}>
-                <FontAwesome name='plus' size={22} color="#fff"/>
-            </Pressable>
-            <TextInput 
-                placeholder={t('message_placeholder')}
-                placeholderTextColor='#999'
-                style={styles.input}
-                value={input} 
-                onChangeText={setInput}
-            />
-            <Pressable onPress={() => sendMessage(input, setInput)} hitSlop={{top: 15, bottom: 15, left: 15, right: 15}} style={({pressed}) => [{opacity: pressed ? 0.5 : 1}]}>
-                <FontAwesome name='send' size={22} color="#fff" style={{paddingVertical: 5}}/>
-            </Pressable>
-        </View>
+                )
+            }}
+        />
+
+        {isPartnerGone ? (
+            <View style={styles.abandonedContainer}>
+                <Text style={styles.abandonedText}>
+                    {otherUserName} {t('partner_left')}
+                </Text>
+                <TouchableOpacity onPress={handleFinalDelete} style={styles.finishButton}>
+                    <Text style={styles.finishButtonText}>{t('close_chat')}</Text>
+                </TouchableOpacity>
+            </View>
+        ) : (
+            <View style={styles.messageBar}>
+                <Pressable hitSlop={{top: 15, bottom: 15, left: 15, right: 15}} style={styles.webPointer}>
+                    <FontAwesome name='plus' size={22} color="#fff"/>
+                </Pressable>
+                <TextInput 
+                    placeholder={t('message_placeholder')}
+                    placeholderTextColor='#999'
+                    style={styles.input}
+                    value={input} 
+                    onChangeText={setInput}
+                    onSubmitEditing={() => {
+                        if(input.trim().length > 0) {
+                            sendMessage(input, setInput)
+                        }
+                    }}
+                    blurOnSubmit={false}
+                />
+                <Pressable 
+                    onPress={() => sendMessage(input, setInput)} 
+                    hitSlop={{top: 15, bottom: 15, left: 15, right: 15}} 
+                    style={({pressed}) => [{opacity: pressed ? 0.5 : 1}, styles.webPointer]}
+                >
+                    <FontAwesome name='send' size={22} color="#fff" style={{paddingVertical: 5}}/>
+                </Pressable>
+            </View>
         )}
+
         <Modal
             animationType='slide'
             transparent={true}
@@ -151,13 +168,13 @@ export default function ChatScreen() {
                             <>                        
                         <Text style={styles.modalTitle}>{t('chat_options')}</Text>
 
-                        <TouchableOpacity style={styles.modalButton} onPress={() => {
+                        <TouchableOpacity style={[styles.modalButton, styles.webPointer]} onPress={() => {
                             setIsReporting(true)
                         }}>
                             <Text style={styles.buttonText}>{t('report_user')}</Text>
                         </TouchableOpacity>
 
-                        <TouchableOpacity style={styles.modalButton} onPress={() => {
+                        <TouchableOpacity style={[styles.modalButton, styles.webPointer]} onPress={() => {
                             setIsConfirmingAbandon(true);
                         }}>
                             <Text style={[styles.buttonText, {color: '#fc4545'}]}>{t('abandon_chat')}</Text>
@@ -168,19 +185,19 @@ export default function ChatScreen() {
                         {isReporting && (
                             <>
                                 <Text style={styles.modalTitle}>{t('report_title')}</Text>
-                                <TouchableOpacity style={styles.modalButton} onPress={() => handleSubmittingReport("Harrasment or Bullying")}>
+                                <TouchableOpacity style={[styles.modalButton, styles.webPointer]} onPress={() => handleSubmittingReport("Harrasment or Bullying")}>
                                     <Text style={[styles.buttonText, {fontWeight: '800'}]}>{t('reason_harassment')}</Text>
                                 </TouchableOpacity>
 
-                                <TouchableOpacity style={styles.modalButton} onPress={() => handleSubmittingReport("Spam or Scam Attempts")}>
+                                <TouchableOpacity style={[styles.modalButton, styles.webPointer]} onPress={() => handleSubmittingReport("Spam or Scam Attempts")}>
                                     <Text style={[styles.buttonText, {fontWeight: '800'}]}>{t('reason_spam')}</Text>
                                 </TouchableOpacity>
 
-                                <TouchableOpacity style={styles.modalButton} onPress={() => handleSubmittingReport("Inappropriate/Explicit Content")}>
+                                <TouchableOpacity style={[styles.modalButton, styles.webPointer]} onPress={() => handleSubmittingReport("Inappropriate/Explicit Content")}>
                                     <Text style={[styles.buttonText, {fontWeight: '800'}]}>{t('reason_explicit')}</Text>
                                 </TouchableOpacity>
 
-                                <TouchableOpacity style={styles.modalButton} onPress={() => handleSubmittingReport("Inappropriate/Explicit Content")}>
+                                <TouchableOpacity style={[styles.modalButton, styles.webPointer]} onPress={() => handleSubmittingReport("Inappropriate/Explicit Content")}>
                                     <Text style={[styles.buttonText, {fontWeight: '800'}]}>{t('reason_other')}</Text>
                                 </TouchableOpacity>
                             </>
@@ -190,17 +207,17 @@ export default function ChatScreen() {
                             <>
                                 <Text style={styles.modalTitle}>{t('confirm_abandon_title')}</Text>
                                 <Text style={styles.modalSubtitle}>{t('confirm_abandon_subtitle')}</Text>
-                                <TouchableOpacity style={styles.modalButton} onPress={() => handleAbandonChat(closeMenu)}>
+                                <TouchableOpacity style={[styles.modalButton, styles.webPointer]} onPress={() => handleAbandonChat(closeMenu)}>
                                     <Text style={[styles.buttonText, {color: '#FF3B30', fontWeight: '800'}]}>{t('confirm_abandon_yes')}</Text>
                                 </TouchableOpacity>
 
-                                <TouchableOpacity style={styles.modalButton} onPress={() => setIsConfirmingAbandon(false)}>
+                                <TouchableOpacity style={[styles.modalButton, styles.webPointer]} onPress={() => setIsConfirmingAbandon(false)}>
                                     <Text style={styles.buttonText}>{t('confirm_abandon_no')}</Text>
                                 </TouchableOpacity>
                             </>
                         )}
 
-                        <TouchableOpacity style={[styles.modalButton, {borderBottomWidth: 0, marginTop: 10}]} onPress={() => {
+                        <TouchableOpacity style={[styles.modalButton, styles.webPointer, {borderBottomWidth: 0, marginTop: 10}]} onPress={() => {
                             closeMenu();
                         }}>
                             <Text style={{color: '#2f6fed', fontWeight: 'bold', fontSize: 18}}>{t('cancel')}</Text>
@@ -214,16 +231,23 @@ export default function ChatScreen() {
   );
 }
 
-// ... styles stay exactly the same as your file!
-
 const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: '#121212',
+    },
+    messageList: {
+        flex: 1,
+        width: '100%',
+    },
     abandonedContainer: {
         backgroundColor: '#1c1c1e',
         padding: 20,
         borderTopWidth: 1,
         borderTopColor: '#333',
         alignItems: 'center',
-        marginBottom: Platform.OS === 'android' ? 50 : 0,
+        width: '100%',
+        marginBottom: Platform.OS === 'web' ? 0 : (Platform.OS === 'android' ? 50 : 20),
     },
     abandonedText: {
         fontSize: 20,
@@ -263,9 +287,12 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#4d4d4d',
         paddingVertical: 20,
-        marginHorizontal: 10,
+        paddingHorizontal: 20,
+        marginHorizontal: '5%',
         marginTop: 15,
-        borderRadius: 20
+        borderRadius: 20,
+        width: '90%',
+        alignSelf: 'center'
     },
     buttonText: {
         color: '#fff',
@@ -275,7 +302,8 @@ const styles = StyleSheet.create({
     },
     contentContainer: {
         paddingBottom: 20,
-        paddingVertical: 12
+        paddingVertical: 12,
+        paddingHorizontal: '5%', 
     },
     bubbleText: {
         color: 'white',
@@ -283,8 +311,8 @@ const styles = StyleSheet.create({
     },
     bubble: {
         alignSelf: 'flex-start',
-        paddingHorizontal: 12,
-        paddingVertical: 10,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
         borderRadius: 18
     },
     bubbleMe: {
@@ -299,8 +327,7 @@ const styles = StyleSheet.create({
         width: '100%',
         flexDirection: 'row',
         marginVertical: 6,
-        paddingHorizontal: 12,
-        marginTop: 20
+        marginTop: 10
     },
     rowMe: {
         justifyContent: 'flex-end'
@@ -312,45 +339,46 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         width: '100%',
-        paddingHorizontal: 15,
-        paddingVertical: 10,
+        paddingHorizontal: '3%', 
+        paddingTop: 20,
+        paddingBottom:  Platform.OS === 'web' ? 25 : (Platform.OS === 'android' ? 60 : 45),
         backgroundColor: '#000',
-        marginBottom: Platform.OS === 'android' ? 50 : 30,
-        marginTop: 10,
+        marginBottom: Platform.OS === 'web' ? 0 : (Platform.OS === 'android' ? 0 : 0),
         borderTopWidth: 0.5,
-        borderColor: '#333'
-    },
-    container: {
-        flex: 1,
-        backgroundColor: '#000',
-    },
-    content:{
-        flex: 1,
+        borderColor: '#222'
     },
     input: {
         flex: 1,
         borderWidth: 1,
-        borderColor: '#999',
+        borderColor: '#333',
         backgroundColor: '#1C1C1E',
-        borderRadius: 20,
+        borderRadius: 24,
         color: 'white',
-        marginHorizontal: 10,
-        paddingHorizontal: 15,
-        paddingVertical: 10
-      },
-      modalOverlay: {
+        marginHorizontal: 15,
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        fontSize: 15,
+    },
+    webPointer: {
+        ...Platform.select({
+            web: {
+                cursor: 'pointer'
+            }
+        })
+    },
+    modalOverlay: {
         flex: 1,
         backgroundColor: 'transparent'
-      },
-      modalSubtitle: {
+    },
+    modalSubtitle: {
         color: '#999',
         fontSize: 16,
         textAlign: 'center',
         paddingHorizontal: 20,
         marginBottom: 20,
         lineHeight: 20,
-      },
-      modalBackdrop: {
+    },
+    modalBackdrop: {
         ...StyleSheet.absoluteFillObject,
         backgroundColor: 'rgba(0,0,0,0.7)',
         justifyContent: 'flex-end'
@@ -362,32 +390,32 @@ const styles = StyleSheet.create({
         padding: 20,
         paddingBottom: 40,
         borderWidth: 1,
-        borderColor: '#333'
+        borderColor: '#333',
+        alignSelf: 'center',
+        width: '100%',
+        maxWidth: 600,
       },
-      dragHandle: {
+    dragHandle: {
         width: 40,
         height: 5,
         backgroundColor: '#3a3a3c',
         borderRadius: 3,
         alignSelf: 'center',
         marginBottom: 15,
-      },
-      modalTitle: {
+    },
+    modalTitle: {
         color: '#666',
         fontSize: 13,
         textAlign: 'center',
         marginBottom: 20,
         textTransform: 'uppercase',
         letterSpacing: 1,
-      },
-      modalButton: {
+    },
+    modalButton: {
         paddingVertical: 18,
         borderBottomWidth: 0.5,
         borderBottomColor: '#333',
         width: '100%',
         alignItems: 'center'
-      }
+    }
 });
-
-
-

@@ -7,7 +7,6 @@ const corsHeaders = {
 }
 
 serve(async (req) => {
-  // Handle CORS
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
@@ -47,62 +46,93 @@ serve(async (req) => {
 
     if(insertError) {
         console.error("DATABASE INSERT CRASHED", insertError.message, insertError.details);
-        throw insertError}
+        throw insertError
+    }
+
+    const targetThreshold = 0.47;
 
     const { data: matches, error: matchError } = await supabaseClient.rpc('match_thoughts', {
       query_embedding: embedding,
-      match_threshold: 0.5, 
-      match_count: 1,      
+      match_threshold: 0.0, 
+      match_count: 5,      
       current_user_id: userId,
     })
 
     if (matchError) {
         console.error("RPC MATCHING CRASHED:", matchError.message, matchError.details);
-        throw matchError}
+        throw matchError
+    }
+    
+    console.log('=== 🧠 THOUGHTMATCH SIMILARITY LOGS ===');
+    console.log(`Current incoming thought: "${thought}"`);
+
+    let finalizedMatch = null;
 
     if (matches && matches.length > 0) {
-      const match = matches[0]
-      const otherUserId = match.user_id
+    let logOutput = `Found ${matches.length} potential rows to scan inside the database pool:\n`;
+      
+      matches.forEach((item: any, index: number) => {
+        const passesGatekeeper = item.similarity >= targetThreshold;
+        
+        console.log(`[Option #${index + 1}] ----------------------------------`);
+        console.log(`🎯 Target Text: "${item.content}"`);
+        console.log(`📊 Similarity Score: ${item.similarity}`);
+        console.log(`✅ Passed Gatekeeper? ${passesGatekeeper ? 'YES' : 'NO'}`);
 
-      const { data: existingRoom } = await supabaseClient
-        .from('match_rooms')
-        .select('id')
-        .or(`and(user_1.eq.${userId},user_2.eq.${otherUserId}),and(user_1.eq.${otherUserId},user_2.eq.${userId})`)
-        .or(`user_1_thought.eq.${match.content},user_2_thought.eq.${match.content}`)
-        .maybeSingle()
-
-      let roomId
-      let alreadyMatched = false
-
-      if (existingRoom) {
-        roomId = existingRoom.id
-        alreadyMatched = true
-      } else {
-        const { data: newRoom, error: roomError } = await supabaseClient
-          .from('match_rooms')
-          .insert({
-            user_1: userId,
-            user_2: otherUserId,
-            user_1_thought: thought,
-            user_2_thought: match.content
-          })
-          .select()
-          .single()
-
-        if (roomError) throw roomError
-        roomId = newRoom.id
-      }
-
-      return new Response(JSON.stringify({ 
-        match: {
-          room_id: roomId,
-          content: match.content,
-          alreadyMatched: alreadyMatched
+        if (passesGatekeeper && !finalizedMatch) {
+          finalizedMatch = item;
+          console.log(`✨ SELECTED AS ACTIVE MATCH RECIPIENT!`);
         }
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200,
-      })
+      });
+      console.log(`=======================================`);
+
+      if (finalizedMatch) {
+        const otherUserId = finalizedMatch.user_id
+
+    
+        const { data: existingRoom } = await supabaseClient
+          .from('match_rooms')
+          .select('id')
+          .or(`and(user_1.eq.${userId},user_2.eq.${otherUserId}),and(user_1.eq.${otherUserId},user_2.eq.${userId})`)
+          .or(`user_1_thought.eq.${finalizedMatch.content},user_2_thought.eq.${finalizedMatch.content}`)
+          .maybeSingle()
+
+        let roomId
+        let alreadyMatched = false
+
+        if (existingRoom) {
+          roomId = existingRoom.id
+          alreadyMatched = true
+        } else {
+          const { data: newRoom, error: roomError } = await supabaseClient
+            .from('match_rooms')
+            .insert({
+              user_1: userId,
+              user_2: otherUserId,
+              user_1_thought: thought,
+              user_2_thought: finalizedMatch.content
+            })
+            .select()
+            .single()
+
+          if (roomError) throw roomError
+          roomId = newRoom.id
+        }
+
+        return new Response(JSON.stringify({ 
+          match: {
+            room_id: roomId,
+            content: finalizedMatch.content,
+            alreadyMatched: alreadyMatched
+          }
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        })
+      }
+    } else {
+      console.log(`❌ No other active rows found in database table 'thoughts' to compare with.`);
+      console.log(`=======================================`);
     }
 
     return new Response(JSON.stringify({ match: null }), {
@@ -111,9 +141,13 @@ serve(async (req) => {
     })
 
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
+    console.error("INTERNAL ENGINE CRASH ENCOUNTERED:", error.message);
+    return new Response(JSON.stringify({
+        diagnosticErrorTriggered: true,
+        message: error.message
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: 400,
+      status: 200,
     })
   }
 })
