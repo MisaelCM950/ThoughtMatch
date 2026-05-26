@@ -11,6 +11,7 @@ export default function Auth() {
   const [isPasswordWrong, setIsPasswordWrong] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const passwordInputRef = React.useRef<any>(null)
 
   const { t, i18n } = useTranslation();
   
@@ -55,6 +56,8 @@ export default function Auth() {
             onChangeText={handleEmailChange}
             autoCapitalize="none"
             style={styles.input}
+            returnKeyType='next'
+            onSubmitEditing={() => passwordInputRef.current?.focus()}
           />
 
           <TextInput
@@ -65,6 +68,8 @@ export default function Auth() {
             secureTextEntry
             autoCapitalize="none"
             style={styles.input}
+            returnKeyType='done'
+            onSubmitEditing={signIn}
           />
 
           {isPasswordWrong &&(
