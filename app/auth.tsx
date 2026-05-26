@@ -2,12 +2,13 @@ import { default as i18nInstance } from '@/i18n';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { supabase } from '../lib/supabase';
 
 export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isPasswordWrong, setIsPasswordWrong] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -17,11 +18,28 @@ export default function Auth() {
     i18nInstance.changeLanguage(langCode);
   };
 
+  const handleEmailChange = (text: string) => {
+    setEmail(text);
+    if (isPasswordWrong) setIsPasswordWrong(false)
+  }
+
+  const handlePasswordChange = (text:string) => {
+    setPassword(text);
+    if(isPasswordWrong) setIsPasswordWrong(false);
+    }
+
   async function signIn() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) Alert.alert("Login Error", error.message);
+    if (error) {
+        setIsPasswordWrong(true)
+        console.log("Your email or password is wrong")
+        setLoading(false);
+        return;
+    };
+    setIsPasswordWrong(false);
     setLoading(false);
+    router.replace('/(tabs)')
   }
 
   return (
@@ -34,7 +52,7 @@ export default function Auth() {
             placeholder="email@gmail.com"
             placeholderTextColor="#666"
             value={email}
-            onChangeText={setEmail}
+            onChangeText={handleEmailChange}
             autoCapitalize="none"
             style={styles.input}
           />
@@ -43,11 +61,17 @@ export default function Auth() {
             placeholder={t('password')}
             placeholderTextColor="#666"
             value={password}
-            onChangeText={setPassword}
+            onChangeText={handlePasswordChange}
             secureTextEntry
             autoCapitalize="none"
             style={styles.input}
           />
+
+          {isPasswordWrong &&(
+            <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{t('auth_error_msg')}</Text>
+            </View>
+          )}
 
           <TouchableOpacity style={styles.buttonPrimary} onPress={signIn} disabled={loading}>
             {loading ? <ActivityIndicator color="white" /> : <Text style={styles.buttonText}>{t('sign_in')}</Text>}
@@ -89,6 +113,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center', 
     alignItems: 'center', 
     paddingHorizontal: '5%', 
+  },
+  errorContainer: {
+    marginVertical: 5,
+    paddingLeft: 4,
+    alignSelf: 'flex-start'
+  },
+  errorText: {
+    color: '#FF4444',
+    fontSize: 13,
+    alignSelf: 'flex-start'
   },
   authBox: { 
     width: '100%', 
