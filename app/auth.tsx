@@ -1,3 +1,5 @@
+import '@/i18n';
+import { default as i18nInstance } from '@/i18n';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -12,10 +14,10 @@ export default function Auth() {
   const router = useRouter();
   const passwordInputRef = React.useRef<any>(null)
 
-  const { t, i18n } = useTranslation();
+  const {t, i18n} = useTranslation();
 
   const changeLanguage = (langCode: string) => {
-    i18n.changeLanguage(langCode);
+    i18nInstance.changeLanguage(langCode);
   };
 
   const handleEmailChange = (text: string) => {
