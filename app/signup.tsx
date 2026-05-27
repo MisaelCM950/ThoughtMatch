@@ -1,3 +1,4 @@
+import '@/i18n';
 import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
 import { useState } from "react";

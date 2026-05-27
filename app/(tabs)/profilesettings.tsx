@@ -1,3 +1,4 @@
+import '@/i18n';
 import { default as i18nInstance } from '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';

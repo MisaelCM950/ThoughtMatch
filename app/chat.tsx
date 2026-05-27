@@ -1,4 +1,5 @@
 import { useChatRoom } from '@/hooks/useChatRooms';
+import '@/i18n';
 import { FontAwesome } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
