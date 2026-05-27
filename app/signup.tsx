@@ -2,7 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Alert, Keyboard, Platform, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
+import { ActivityIndicator, Alert, Keyboard, Platform, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 export default function SignUpScreen() {
@@ -13,7 +13,15 @@ export default function SignUpScreen() {
     const router = useRouter();
     const [birthdate, setBirthdate] = useState('');
 
-    const { t } = useTranslation();
+    const { t, ready } = useTranslation();
+
+    if(!ready) {
+        return (
+            <View style={{flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center'}}>
+                <ActivityIndicator color='#2686b3' size='large'/>
+            </View>
+        )
+    }
 
 
     const handleBirthdayChange = (text: string) => {
@@ -81,6 +89,12 @@ export default function SignUpScreen() {
                 <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
                     <View style={styles.formBox}>
                         <Text style={styles.title}>{t('create_account')}</Text>
+
+                        <View style={styles.noticeBox}>
+                            <Text style={styles.noticeText}>
+                                {t('no_email')}
+                            </Text>
+                        </View>
                         
                         <TextInput
                             placeholder={t('name')}
@@ -142,6 +156,21 @@ export default function SignUpScreen() {
 }
 
 const styles = StyleSheet.create({
+    noticeBox: {
+    backgroundColor: '#111',
+    borderWidth: 1,
+    borderColor: '#2686b3',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 20,
+    width: '100%'
+  },
+  noticeText: {
+    color: '#ccc',
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
     inputContainer: {
         width: '100%',
         alignItems: 'flex-start'

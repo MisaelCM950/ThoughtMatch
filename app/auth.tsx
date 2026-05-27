@@ -13,7 +13,15 @@ export default function Auth() {
   const router = useRouter();
   const passwordInputRef = React.useRef<any>(null)
 
-  const { t, i18n } = useTranslation();
+  const { t, i18n, ready } = useTranslation();
+
+  if(!ready) {
+        return (
+            <View style={{flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center'}}>
+                <ActivityIndicator color='#2686b3' size='large'/>
+            </View>
+        )
+    }
   
   const changeLanguage = (langCode: string) => {
     i18nInstance.changeLanguage(langCode);
@@ -48,6 +56,11 @@ export default function Auth() {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.container}>
         <View style={styles.authBox}>
           <Text style={styles.title}>ThoughtMatch</Text>
+          <View style={styles.noticeBox}>
+                <Text style={styles.noticeText}>
+                    {t('no_email')}
+                </Text>
+          </View>
           
           <TextInput
             placeholder="email@gmail.com"
@@ -118,6 +131,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center', 
     alignItems: 'center', 
     paddingHorizontal: '5%', 
+  },
+  noticeBox: {
+    backgroundColor: '#111',
+    borderWidth: 1,
+    borderColor: '#2686b3',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 20,
+    width: '100%'
+  },
+  noticeText: {
+    color: '#ccc',
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
   },
   errorContainer: {
     marginVertical: 5,

@@ -3,14 +3,22 @@ import { FontAwesome } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function MatchesScreen() {
     const [rooms, setRooms] = useState<any[]>([]);
     const router = useRouter();
-    const { t } = useTranslation();
+    const { t, ready} = useTranslation();
     const [currentUserId, setCurrentUserId] = useState<string | null>(null); 
     const [infoModalVisible, setInfoModelVisible] = useState(false);
+
+    if(!ready) {
+            return (
+                <View style={{flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center'}}>
+                    <ActivityIndicator color='#2686b3' size='large'/>
+                </View>
+            )
+        }
 
     const channelRef = useRef<any>(null);
     useEffect(() => {
