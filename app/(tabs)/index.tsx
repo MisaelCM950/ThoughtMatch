@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 interface PopupConfig {
   visible: boolean;
@@ -19,15 +19,7 @@ export default function HomeScreen() {
     const [status, setStatus] = useState<'idle' | 'matching'  | 'queued' | 'matched'>('idle');
     const [roomId, setRoomId] = useState<string | null>(null);
     const router = useRouter();
-    const { t, ready} = useTranslation();
-
-    if(!ready) {
-        return (
-            <View style={{flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center'}}>
-                <ActivityIndicator color='#2686b3' size='large'/>
-            </View>
-        )
-    }
+    const { t} = useTranslation();
 
     const [popupConfig, setPopupConfig] = useState<PopupConfig>({
       visible: false,

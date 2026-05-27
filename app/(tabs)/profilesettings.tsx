@@ -3,21 +3,13 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
 export default function HomeScreen() {
     const [name, setName] = useState('User');
     const [email, setEmail] = useState('');
     const router = useRouter();
-    const {t, i18n, ready} = useTranslation();
-
-    if(!ready) {
-        return (
-            <View style={{flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center'}}>
-                <ActivityIndicator color='#2686b3' size='large'/>
-            </View>
-        )
-    }
+    const {t, i18n} = useTranslation();
 
     const changeLanguage = (langCode: string) => {
         i18nInstance.changeLanguage(langCode)

@@ -13,16 +13,8 @@ export default function Auth() {
   const router = useRouter();
   const passwordInputRef = React.useRef<any>(null)
 
-  const { t, i18n, ready } = useTranslation();
+  const { t, i18n } = useTranslation();
 
-  if(!ready) {
-        return (
-            <View style={{flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center'}}>
-                <ActivityIndicator color='#2686b3' size='large'/>
-            </View>
-        )
-    }
-  
   const changeLanguage = (langCode: string) => {
     i18nInstance.changeLanguage(langCode);
   };

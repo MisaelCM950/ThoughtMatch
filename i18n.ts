@@ -109,7 +109,7 @@ const resources = {
             tap_to_chat: "Presiona para chatear",
             no_matches_yet: "No hay conexiones aún. ¡Ve a pensar algo!",
             go_think_btn: "¡A Pensar!",
-            back_btn: "Volver"
+            back_btn: "Volver",
 
             
         }
@@ -124,6 +124,9 @@ i18n
     fallbackLng: 'en',
     interpolation: {
       escapeValue: false 
+    },
+    react: {
+        useSuspense: false
     }
   });
 

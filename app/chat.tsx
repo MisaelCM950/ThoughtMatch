@@ -3,21 +3,13 @@ import { FontAwesome } from '@expo/vector-icons';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, FlatList, Modal, Platform, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { FlatList, Modal, Platform, Pressable, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 export default function ChatScreen() {
     const { roomId, thought } = useLocalSearchParams();
     const router = useRouter();
-    const { t, ready } = useTranslation();
-
-    if(!ready) {
-        return (
-            <View style={{flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center'}}>
-                <ActivityIndicator color='#2686b3' size='large'/>
-            </View>
-        )
-    }
+    const { t } = useTranslation();
 
     const [isReporting, setIsReporting] = useState(false);
     const [isConfirmingAbandon, setIsConfirmingAbandon] = useState(false);

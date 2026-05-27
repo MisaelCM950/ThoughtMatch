@@ -2,7 +2,7 @@ import { supabase } from "@/lib/supabase";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { ActivityIndicator, Alert, Keyboard, Platform, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
+import { Alert, Keyboard, Platform, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from "react-native";
 import { KeyboardAvoidingView } from 'react-native-keyboard-controller';
 
 export default function SignUpScreen() {
@@ -13,16 +13,7 @@ export default function SignUpScreen() {
     const router = useRouter();
     const [birthdate, setBirthdate] = useState('');
 
-    const { t, ready } = useTranslation();
-
-    if(!ready) {
-        return (
-            <View style={{flex: 1, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center'}}>
-                <ActivityIndicator color='#2686b3' size='large'/>
-            </View>
-        )
-    }
-
+    const { t } = useTranslation();
 
     const handleBirthdayChange = (text: string) => {
         const cleaned = text.replace(/[^0-9]/g, '');
