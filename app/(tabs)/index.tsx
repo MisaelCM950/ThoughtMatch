@@ -43,9 +43,9 @@ export default function HomeScreen() {
 
         if (errorMessage.includes('maximum limit of 3 active chats')) {
             triggerPopup(
-              "Chat Limit Reached",
-              "You currently have 3 active chats. You must abandon or close at least one of your current conversations before matching on a new thought.",
-              "View My Matches",
+              t('limit_reached'),
+              t('three_chats'),
+              t('view_matches'),
               () => {
                 setPopupConfig(prev => ({ ...prev, visible: false }));
                 router.push('/matches');
@@ -189,7 +189,7 @@ export default function HomeScreen() {
                 }}
               >
                 <Text style={styles.popupCloseButtonText}>
-                  {popupConfig.primaryButtonText ? "Cancel" : "Close"}
+                  {popupConfig.primaryButtonText ? t('cancel') : "Close"}
                 </Text>
               </TouchableOpacity>
             </View>

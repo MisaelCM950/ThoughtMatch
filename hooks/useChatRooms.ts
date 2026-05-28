@@ -163,28 +163,15 @@ export function useChatRoom(roomId: string | string[]) {
                         .eq('id', roomId)
                         .single();
                     
-                    if (fetchError || !room) {
-                        console.error("❌ ABANDON ERROR: Could not find room data row", fetchError);
-                        return;
-                    } 
+                    if (fetchError || !room) return;
 
                     const u1 = String(room.user_1).toLowerCase();
                     const u2 = String(room.user_2).toLowerCase();
 
                     const isAI = u1 === cleanBotId || u2 === cleanBotId;
                     const someoneElseAlreadyLeft = room?.abandoned_by && String(room.abandoned_by).toLowerCase() !== String(currentUser.id).toLowerCase();
-                    
-                    console.log("=== 🔍 DISCONNECTING ROOM DIAGNOSTICS ===");
-                    console.log(`Current Room ID: ${roomId}`);
-                    console.log(`User 1 in DB:   "${u1}"`);
-                    console.log(`User 2 in DB:   "${u2}"`);
-                    console.log(`Target Bot ID:  "${cleanBotId}"`);
-                    console.log(`Is AI Match?:   ${isAI}`);
-                    console.log(`Partner Left?:  ${someoneElseAlreadyLeft}`);
-                    console.log("=========================================");
 
                     if(isAI || someoneElseAlreadyLeft) {
-                        console.log("🚀 Executing hard DELETE statement on room row...");
                         const {error: deleteError} = await supabase
                             .from('match_rooms')
                             .delete()
@@ -192,7 +179,6 @@ export function useChatRoom(roomId: string | string[]) {
 
                         if(deleteError) throw deleteError;
                     } else {
-                        console.log("👥 First human leaving. Executing UPDATE statement...");
                         const {error: updateError} = await supabase
                             .from('match_rooms')
                             .update({abandoned_by: currentUser.id})

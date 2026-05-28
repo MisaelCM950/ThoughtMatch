@@ -30,6 +30,10 @@ const resources = {
             auth_error_msg: "Your email or password is wrong",
             no_email: '🧠 Welcome! No real email verification required. Click "Create Account" and Type a made-up email and password to jump straight into the alpha trial.',
             chat_limit: 'Active Chat Limit',
+            limit_reached: "Chat Limit Reached",
+            three_chats: "You currently have 3 active chats. You must abandon or close at least one of your current conversations before matching on a new thought.",
+            view_matches: "View My Matches",
+            cancel: "Cancel",
 
             
             matched_on: "You matched on:",
@@ -49,7 +53,6 @@ const resources = {
             confirm_abandon_subtitle: "This will delete the chat for both users and cannot be undone",
             confirm_abandon_yes: "Yes, Abandon Chat",
             confirm_abandon_no: "No, Keep Chatting",
-            cancel: "Cancel",
 
             your_matches: "Your Matches",
             tap_to_chat: "Tap to chat",
@@ -87,6 +90,9 @@ const resources = {
             auth_error_msg: 'Tu correo electrónico o contraseña son incorrectos.',
             no_email: '🧠 ¡Bienvenido/a! No se requiere verificación de correo electrónico. Click en "Crear Cuenta" y Introduce un correo electrónico y una contraseña ficticios para acceder directamente a la prueba alfa.',
             chat_limit: 'Límite de chats activos',
+            limit_reached: "Se ha alcanzado el límite de chat",
+            three_chats: "Actualmente tienes 3 chats activos. Debes abandonar o cerrar al menos una de tus conversaciones actuales antes de poder conectar con un nuevo pensamiento.",
+            view_matches: "Ver mis matches",
 
             matched_on: "Conectaste en:",
             with: "con",
