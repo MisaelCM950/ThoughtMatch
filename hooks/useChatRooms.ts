@@ -153,12 +153,53 @@ export function useChatRoom(roomId: string | string[]) {
                 try {
                     const {data: {user: currentUser}} = await supabase.auth.getUser();
                     if(!currentUser) return;
-                    const {error} = await supabase
+
+                const botId = "80c65ed7-9758-4a19-8862-072c197463cd";
+                const cleanBotId = botId.toLowerCase();
+
+                    const {data: room, error: fetchError} = await supabase
                         .from('match_rooms')
-                        .update({abandoned_by: currentUser.id})
+                        .select('user_1, user_2, abandoned_by')
                         .eq('id', roomId)
-                        
-                    if(error) throw error;
+                        .single();
+                    
+                    if (fetchError || !room) {
+                        console.error("❌ ABANDON ERROR: Could not find room data row", fetchError);
+                        return;
+                    } 
+
+                    const u1 = String(room.user_1).toLowerCase();
+                    const u2 = String(room.user_2).toLowerCase();
+
+                    const isAI = u1 === cleanBotId || u2 === cleanBotId;
+                    const someoneElseAlreadyLeft = room?.abandoned_by && String(room.abandoned_by).toLowerCase() !== String(currentUser.id).toLowerCase();
+                    
+                    console.log("=== 🔍 DISCONNECTING ROOM DIAGNOSTICS ===");
+                    console.log(`Current Room ID: ${roomId}`);
+                    console.log(`User 1 in DB:   "${u1}"`);
+                    console.log(`User 2 in DB:   "${u2}"`);
+                    console.log(`Target Bot ID:  "${cleanBotId}"`);
+                    console.log(`Is AI Match?:   ${isAI}`);
+                    console.log(`Partner Left?:  ${someoneElseAlreadyLeft}`);
+                    console.log("=========================================");
+
+                    if(isAI || someoneElseAlreadyLeft) {
+                        console.log("🚀 Executing hard DELETE statement on room row...");
+                        const {error: deleteError} = await supabase
+                            .from('match_rooms')
+                            .delete()
+                            .eq('id', String(roomId));
+
+                        if(deleteError) throw deleteError;
+                    } else {
+                        console.log("👥 First human leaving. Executing UPDATE statement...");
+                        const {error: updateError} = await supabase
+                            .from('match_rooms')
+                            .update({abandoned_by: currentUser.id})
+                            .eq('id', roomId);
+
+                        if(updateError) throw updateError;
+                    }
                     closeMenu();
                     router.replace('/(tabs)')
                 } catch (error: any){

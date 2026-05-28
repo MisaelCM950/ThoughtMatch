@@ -18,8 +18,8 @@ serve(async (req) => {
     )
 
     const { thought, userId } = await req.json()
-
     const apiKey = Deno.env.get('OPENAI_API_KEY')
+
     const response = await fetch('https://api.openai.com/v1/embeddings', {
       method: 'POST',
       headers: {
@@ -33,10 +33,10 @@ serve(async (req) => {
     })
 
     const result = await response.json()
-    if (!result.data) throw new Error("OpenAI Error: " + JSON.stringify(result))
+    if (!result.data) throw new Error("OpenAI Embedding Error: " + JSON.stringify(result))
     const embedding = result.data[0].embedding
 
-    const {error: insertError} = await supabaseClient
+    const { error: insertError } = await supabaseClient
         .from('thoughts')
         .insert({
             content: thought,
@@ -44,98 +44,115 @@ serve(async (req) => {
             embedding: embedding,
         })
 
-    if(insertError) {
-        console.error("DATABASE INSERT CRASHED", insertError.message, insertError.details);
-        throw insertError
-    }
+    if (insertError) throw insertError
 
     const targetThreshold = 0.47;
 
     const { data: matches, error: matchError } = await supabaseClient.rpc('match_thoughts', {
       query_embedding: embedding,
       match_threshold: 0.0, 
-      match_count: 5,      
+      match_count: 20,     
       current_user_id: userId,
     })
 
-    if (matchError) {
-        console.error("RPC MATCHING CRASHED:", matchError.message, matchError.details);
-        throw matchError
-    }
+    if (matchError) throw matchError
     
-    console.log('=== 🧠 THOUGHTMATCH SIMILARITY LOGS ===');
-    console.log(`Current incoming thought: "${thought}"`);
-
+    console.log('=== 🧠 THOUGHTMATCH LOGS ===');
     let finalizedMatch = null;
 
     if (matches && matches.length > 0) {
-    let logOutput = `Found ${matches.length} potential rows to scan inside the database pool:\n`;
-      
-      matches.forEach((item: any, index: number) => {
-        const passesGatekeeper = item.similarity >= targetThreshold;
-        
-        console.log(`[Option #${index + 1}] ----------------------------------`);
-        console.log(`🎯 Target Text: "${item.content}"`);
-        console.log(`📊 Similarity Score: ${item.similarity}`);
-        console.log(`✅ Passed Gatekeeper? ${passesGatekeeper ? 'YES' : 'NO'}`);
+      const humanMatches = matches.filter((m: any) => !m.is_ai_bot);
 
-        if (passesGatekeeper && !finalizedMatch) {
+      for (const item of humanMatches) {
+        if (item.similarity >= targetThreshold) {
           finalizedMatch = item;
-          console.log(`✨ SELECTED AS ACTIVE MATCH RECIPIENT!`);
+          console.log(`✨ HUMAN MATCH FOUND: "${item.content}" (Score: ${item.similarity})`);
+          break;
         }
-      });
-      console.log(`=======================================`);
-
-      if (finalizedMatch) {
-        const otherUserId = finalizedMatch.user_id
-
-    
-        const { data: existingRoom } = await supabaseClient
-          .from('match_rooms')
-          .select('id')
-          .or(`and(user_1.eq.${userId},user_2.eq.${otherUserId}),and(user_1.eq.${otherUserId},user_2.eq.${userId})`)
-          .or(`user_1_thought.eq.${finalizedMatch.content},user_2_thought.eq.${finalizedMatch.content}`)
-          .maybeSingle()
-
-        let roomId
-        let alreadyMatched = false
-
-        if (existingRoom) {
-          roomId = existingRoom.id
-          alreadyMatched = true
-        } else {
-          const { data: newRoom, error: roomError } = await supabaseClient
-            .from('match_rooms')
-            .insert({
-              user_1: userId,
-              user_2: otherUserId,
-              user_1_thought: thought,
-              user_2_thought: finalizedMatch.content
-            })
-            .select()
-            .single()
-
-          if (roomError) throw roomError
-          roomId = newRoom.id
-        }
-
-        return new Response(JSON.stringify({ 
-          match: {
-            room_id: roomId,
-            content: finalizedMatch.content,
-            alreadyMatched: alreadyMatched
-          }
-        }), {
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 200,
-        })
       }
-    } else {
-      console.log(`❌ No other active rows found in database table 'thoughts' to compare with.`);
-      console.log(`=======================================`);
     }
 
-    return new Response(JSON.stringify({ match: null }), {
+    if (!finalizedMatch) {
+      console.log(`🤖 No human match found. Activating dynamic AI Custom Sync...`);
+      const aiBotUserId = "80c65ed7-9758-4a19-8862-072c197463cd";
+
+      const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini', 
+          messages: [
+            { 
+              role: 'system', 
+              content: `You are a real human user posting a thought on a social connection app. 
+                Your goal is to write a short, single-sentence personal thought of your own that shares a SIMILAR topic, vibe, or situation as the input thought, but phrased completely differently as your own separate experience.
+                
+                CRITICAL RULES:
+                1. DO NOT reply to the user's thought.
+                2. DO NOT address the user (No "Happy birthday", no "Good luck with that", no "I agree with you").
+                3. Speak in the first person ("I am...", "My...", "Just...").
+                
+                Example input: "I'm turning 21 tomorrow" -> Correct output: "Can't believe my 21st birthday is coming up this week, time flies."
+                Keep it informal, organic, and realistic. Max 15 words.` 
+            },
+            { role: 'user', content: `Generate a matching thought response for this user input: "${thought}"` }
+          ],
+          temperature: 0.7,
+        }),
+      })
+
+      const aiChatResult = await aiResponse.json()
+      const aiGeneratedThought = aiChatResult.choices[0].message.content.trim().replace(/^"|"$/g, '')
+
+      console.log(`🤖 AI Engine Generated Dynamic Counter-Thought: "${aiGeneratedThought}"`);
+
+      finalizedMatch = {
+        user_id: aiBotUserId,
+        content: aiGeneratedThought
+      }
+    }
+
+    const otherUserId = finalizedMatch.user_id
+    
+    const { data: existingRoom } = await supabaseClient
+      .from('match_rooms')
+      .select('id')
+      .or(`and(user_1.eq.${userId},user_2.eq.${otherUserId}),and(user_1.eq.${otherUserId},user_2.eq.${userId})`)
+      .or(`user_1_thought.eq.${finalizedMatch.content},user_2_thought.eq.${finalizedMatch.content}`)
+      .maybeSingle()
+
+    let roomId
+    let alreadyMatched = false
+
+    if (existingRoom) {
+      roomId = existingRoom.id
+      alreadyMatched = true
+    } else {
+      const { data: newRoom, error: roomError } = await supabaseClient
+        .from('match_rooms')
+        .insert({
+          user_1: userId,
+          user_2: otherUserId,
+          user_1_thought: thought,
+          user_2_thought: finalizedMatch.content
+        })
+        .select()
+        .single()
+
+      if (roomError) throw roomError
+      roomId = newRoom.id
+    }
+
+    return new Response(JSON.stringify({ 
+      match: {
+        room_id: roomId,
+        content: finalizedMatch.content,
+        alreadyMatched: alreadyMatched
+      }
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })

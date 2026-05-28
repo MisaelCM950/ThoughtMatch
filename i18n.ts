@@ -29,6 +29,7 @@ const resources = {
             info_second: "If you want to match on a new thought, you must open and abandon one of your current chat rooms first!",
             auth_error_msg: "Your email or password is wrong",
             no_email: '🧠 Welcome! No real email verification required. Click "Create Account" and Type a made-up email and password to jump straight into the alpha trial.',
+            chat_limit: 'Active Chat Limit',
 
             
             matched_on: "You matched on:",
@@ -85,6 +86,7 @@ const resources = {
             info_second: "Si quieres conectar con un nuevo pensamiento, ¡primero debes abrir y abandonar una de tus salas de chat actuales!",
             auth_error_msg: 'Tu correo electrónico o contraseña son incorrectos.',
             no_email: '🧠 ¡Bienvenido/a! No se requiere verificación de correo electrónico. Click en "Crear Cuenta" y Introduce un correo electrónico y una contraseña ficticios para acceder directamente a la prueba alfa.',
+            chat_limit: 'Límite de chats activos',
 
             matched_on: "Conectaste en:",
             with: "con",

@@ -129,7 +129,7 @@ export default function MatchesScreen() {
                 <View style={styles.modalOverlay}>
                     <View style={styles.infoBox}>
                         <FontAwesome name='info-circle' size={32} color='#2686b3' style={{marginBottom: 12}}/>
-                        <Text style={styles.infoTitle}>Active Chat Limit</Text>
+                        <Text style={styles.infoTitle}>{t('chat_limit')}</Text>
                         <Text style={styles.infoMessage}>
                             {t('info_first')}{"\n\n"}
                             {t('info_second')}
