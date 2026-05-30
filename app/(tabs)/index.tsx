@@ -2,7 +2,7 @@ import { useNotifications } from '@/hooks/useNotifications';
 import '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -15,12 +15,45 @@ interface PopupConfig {
 }
 
 export default function HomeScreen() {
+    const [onlineUserCount, setOnlineUserCount] = useState<number>(1);
     const pushToken = useNotifications();
     const [thought, setThought] = useState('');
     const [status, setStatus] = useState<'idle' | 'matching'  | 'queued' | 'matched'>('idle');
     const [roomId, setRoomId] = useState<string | null>(null);
     const router = useRouter();
     const { t} = useTranslation();
+
+    useEffect(() => {
+    // 1. Create a realtime channel specifically for tracking presence
+    const channel = supabase.channel('online-humans', {
+      config: {
+        presence: {
+          key: 'user', // Tracks connections under this key
+        },
+      },
+    });
+
+    // 2. Listen for users joining or leaving
+    channel
+      .on('presence', { event: 'sync' }, () => {
+        const presenceState = channel.presenceState();
+        
+        // Count the unique connections currently online
+        const totalOnline = Object.keys(presenceState).length;
+        setOnlineUserCount(totalOnline);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          // 3. Track this current device when successfully connected
+          await channel.track({ online_at: new Date().toISOString() });
+        }
+      });
+
+    // Cleanup connection when the user navigates away or closes the app
+    return () => {
+      channel.unsubscribe();
+    };
+  }, []);
 
     const [popupConfig, setPopupConfig] = useState<PopupConfig>({
       visible: false,
@@ -158,6 +191,18 @@ export default function HomeScreen() {
           <TouchableOpacity style={styles.chatsButton} onPress={() => router.push('/matches')}>
               <Text style={styles.chatsButtonText}>{t("chat")}</Text>
           </TouchableOpacity>
+
+          <View style={{ padding: 20, alignItems: 'center' }}>
+
+        {/* 🟢 Live Counter UI Badge */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a1a', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 }}>
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#4ADE80', marginRight: 8 }} />
+            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>
+            {onlineUserCount} {onlineUserCount === 1 ? 'person' : 'people'} online
+            </Text>
+        </View>
+        </View>
+        
         </View>
       </ScrollView>
       <Modal
