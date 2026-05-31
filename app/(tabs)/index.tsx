@@ -45,7 +45,9 @@ export default function HomeScreen() {
       .subscribe(async (status) => {
         if (status === 'SUBSCRIBED') {
           // 3. Track this current device when successfully connected
-          await channel.track({ online_at: new Date().toISOString() });
+          await channel.track({ 
+            id: Math.random().toString(36).substring(7),
+            online_at: new Date().toISOString() });
         }
       });
 
@@ -202,7 +204,7 @@ export default function HomeScreen() {
             </Text>
         </View>
         </View>
-        
+
         </View>
       </ScrollView>
       <Modal
