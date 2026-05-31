@@ -14,6 +14,36 @@ interface PopupConfig {
   onPrimaryPress?: () => void;
 }
 
+let globalPresenceChannel: any = null;
+let globalListeners: Set<(count: number)=> void> = new Set();
+
+const initializedGlobalCounter = () => {
+    if (globalPresenceChannel) return;
+
+    globalPresenceChannel = supabase.channel('global-online-counter', {
+        config: {
+            presence: {
+                key: `device-token-${Math.random().toString(36).substring(7)}`,
+            },
+        },
+    });
+
+    globalPresenceChannel
+        .on('presence', {event: 'sync'}, ()=> {
+            const presenceState = globalPresenceChannel.presenceState();
+            const totalOnline = Object.keys(presenceState).length;
+            const count = totalOnline > 0 ? totalOnline: 1;
+            globalListeners.forEach((listener) => listener(count));
+        })
+        .subscribe((status: string)=> {
+            if(status === 'SUBSCRIBED') {
+                globalPresenceChannel.track({
+                    online_at: new Date().toISOString(),
+                }).catch((err: any)=> console.error('Global presence tracking block error:', err));
+            }
+        });
+};
+
 export default function HomeScreen() {
     const [onlineUserCount, setOnlineUserCount] = useState<number>(1);
     const pushToken = useNotifications();
@@ -22,38 +52,22 @@ export default function HomeScreen() {
     const [roomId, setRoomId] = useState<string | null>(null);
     const router = useRouter();
     const { t} = useTranslation();
+    useEffect(()=>{
+    initializedGlobalCounter();
 
-    useEffect(() => {
-    // 1. Create a realtime channel specifically for tracking presence
-    const channel = supabase.channel('online-humans', {
-      config: {
-        presence: {
-          key: 'user', // Tracks connections under this key
-        },
-      },
-    });
+    if(globalPresenceChannel) {
+        const initialState = globalPresenceChannel.presenceState();
+        const initialCount = Object.keys(initialState).length;
+        setOnlineUserCount(initialCount > 0 ? initialCount : 1);
+    }
 
-    // 2. Listen for users joining or leaving
-    channel
-      .on('presence', { event: 'sync' }, () => {
-        const presenceState = channel.presenceState();
-        
-        // Count the unique connections currently online
-        const totalOnline = Object.keys(presenceState).length;
-        setOnlineUserCount(totalOnline);
-      })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          // 3. Track this current device when successfully connected
-          await channel.track({ 
-            id: Math.random().toString(36).substring(7),
-            online_at: new Date().toISOString() });
-        }
-      });
+    const handleLiveCounterUpdate = (count: number) => {
+        setOnlineUserCount(count);
+    };
+    globalListeners.add(handleLiveCounterUpdate);
 
-    // Cleanup connection when the user navigates away or closes the app
-    return () => {
-      channel.unsubscribe();
+    return ()=> {
+        globalListeners.delete(handleLiveCounterUpdate);
     };
   }, []);
 
