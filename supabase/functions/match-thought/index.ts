@@ -75,6 +75,7 @@ serve(async (req) => {
       const humanMatches = matches.filter((m: any) => !m.is_ai_bot);
 
       for (const item of humanMatches) {
+        console.log(`🔍 EVALUATING CANDIDATE: Score: ${item.similarity.toFixed(4)} | Thought: "${item.content}"`);
         if (item.similarity >= targetThreshold) {
           finalizedMatch = item;
           console.log(`✨ HUMAN MATCH FOUND: "${item.content}" (Score: ${item.similarity})`);
