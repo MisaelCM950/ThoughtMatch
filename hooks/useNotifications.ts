@@ -14,6 +14,7 @@ Notifications.setNotificationHandler({
     }),
 });
 
+
 export function useNotifications() {
     const [token, setToken] = useState<string | null>(null);
 

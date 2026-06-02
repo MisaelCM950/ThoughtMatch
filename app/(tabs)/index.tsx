@@ -1,4 +1,5 @@
 import { useNotifications } from '@/hooks/useNotifications';
+import { useWebNotifications } from '@/hooks/useWebNotifications';
 import '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
@@ -46,6 +47,7 @@ const initializedGlobalCounter = () => {
 };
 
 export default function HomeScreen() {
+    useWebNotifications();
     const [onlineUserCount, setOnlineUserCount] = useState<number>(1);
     const pushToken = useNotifications();
     const [thought, setThought] = useState('');
