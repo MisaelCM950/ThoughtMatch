@@ -105,6 +105,35 @@ export default function HomeScreen() {
         }
     }
 
+    const handleForceAIMatch = async (userThought: string, userId: string) => {
+        setStatus('matching');
+        setPopupConfig(prev => ({...prev, visible: false}));
+
+        try {
+            const { data, error } = await supabase.functions.invoke('match-thought', {
+                body: { thought: userThought, userId: userId, forceAIFallback: true }
+            });
+
+            if (error || data?.diagnosticErrorTriggered) throw new Error(error?.message || data?.message);
+
+            if(data?.match) {
+                console.log("AI Match Formed via User Opt-In Option!")
+                setStatus('matched');
+                setTimeout(() => {
+                    setStatus('idle');
+                    router.push({
+                        pathname: '/chat',
+                        params: {roomId: data.match.room_id, thought: userThought}
+                    });
+                }, 1000);
+            }
+        } catch (e: any){
+            console.error("AI Fallback creation crash:", e.message);
+            setStatus('idle');
+            triggerPopup("AI Connection Failed", "Could not generate companion link at this time.")
+        }
+    };
+
     const handleMatch = async () => {
       if (thought.trim().length < 15) {
         triggerPopup(t('thought_too_short'), t('write_more'));
@@ -112,6 +141,7 @@ export default function HomeScreen() {
       }
 
       setStatus('matching');
+      const currentThoughtText = thought;
 
       try {
         const { data: { user } } = await supabase.auth.getUser();
@@ -147,25 +177,28 @@ export default function HomeScreen() {
                 });
               }
             );
-          } else {
-            console.log("New Match Found!");
-            setStatus('matched');
+            return;
+          } 
+            console.log("Match Found!");
+            setStatus('matched' );
+            setThought('');
             setTimeout(() => {
+                setStatus('idle');
+                router.push({
+                    pathname: '/chat',
+                    params: { roomId: room_id, thought: currentThoughtText }
+                })
+            }, 1000);        
+
+        }else {
               setStatus('idle');
-              router.push({
-                pathname: '/chat',
-                params: { roomId: room_id, thought: thought }
-              });
-            }, 1000);
-          }
-          setThought('');
-        } else {
+            setThought('');
           triggerPopup(
             t('new_thought'),
-            t('alert_match_not_found') || "You are the first one thinking this! No match was found right away, but your thought is pinned."
+            t('alert_match_not_found') || "Your thought is pinned and waiting for a human match. In the meantime, do you want to unlock an AI Reflection Buddy to explore this thought right now?",
+            "Chat with AI",
+          () => handleForceAIMatch(currentThoughtText, user.id)
           );
-          setStatus('idle');
-          setThought('');
         }
 
       } catch (e: any) {
@@ -250,7 +283,7 @@ export default function HomeScreen() {
                 }}
               >
                 <Text style={styles.popupCloseButtonText}>
-                  {popupConfig.primaryButtonText ? t('cancel') : "Close"}
+                  {popupConfig.primaryButtonText ? 'Ok, Wait' : "Close"}
                 </Text>
               </TouchableOpacity>
             </View>

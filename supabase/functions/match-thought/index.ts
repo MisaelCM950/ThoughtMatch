@@ -35,7 +35,7 @@ serve(async (req) => {
       });
     }
 
-    const { thought } = await req.json()
+    const { thought, forceAIFallback } = await req.json()
     const userId = user.id;
     const apiKey = Deno.env.get('OPENAI_API_KEY')
 
@@ -55,37 +55,55 @@ serve(async (req) => {
     if (!result.data) throw new Error("OpenAI Embedding Error: " + JSON.stringify(result))
     const embedding = result.data[0].embedding
 
-    
-
-    const targetThreshold = 0.47;
-
-    const { data: matches, error: matchError } = await supabaseClient.rpc('match_thoughts', {
-      query_embedding: embedding,
-      match_threshold: 0.0, 
-      match_count: 20,     
-      current_user_id: userId,
-    })
-
-    if (matchError) throw matchError
-    
-    console.log('=== 🧠 THOUGHTMATCH LOGS ===');
+    const targetThreshold = 0.40;
     let finalizedMatch = null;
 
-    if (matches && matches.length > 0) {
-      const humanMatches = matches.filter((m: any) => !m.is_ai_bot);
+    if (!forceAIFallback) {
+      const { data: matches, error: matchError } = await supabaseClient.rpc('match_thoughts', {
+        query_embedding: embedding,
+        match_threshold: 0.0, 
+        match_count: 20,     
+        current_user_id: userId,
+      })
 
-      for (const item of humanMatches) {
-        console.log(`🔍 EVALUATING CANDIDATE: Score: ${item.similarity.toFixed(4)} | Thought: "${item.content}"`);
-        if (item.similarity >= targetThreshold) {
-          finalizedMatch = item;
-          console.log(`✨ HUMAN MATCH FOUND: "${item.content}" (Score: ${item.similarity})`);
-          break;
+      if (matchError) throw matchError
+      
+      console.log('=== 🧠 THOUGHTMATCH HUMAN LOGS ===');
+      if (matches && matches.length > 0) {
+        const humanMatches = matches.filter((m: any) => !m.is_ai_bot);
+
+        for (const item of humanMatches) {
+          console.log(`🔍 EVALUATING CANDIDATE: Score: ${item.similarity.toFixed(4)} | Thought: "${item.content}"`);
+          if (item.similarity >= targetThreshold) {
+            finalizedMatch = item;
+            console.log(`✨ HUMAN MATCH FOUND: "${item.content}" (Score: ${item.similarity})`);
+            break;
+          }
         }
+      }
+
+      // If no human match is found on pass 1, save the thought and return null to trigger frontend popup
+      if (!finalizedMatch) {
+        console.log(`📌 No human match discovered. Pinning thought to queue database...`);
+        const { error: insertError } = await supabaseClient
+          .from('thoughts')
+          .insert({
+              content: thought,
+              user_id: userId,
+              embedding: embedding,
+          })
+
+        if (insertError) throw insertError
+
+        return new Response(JSON.stringify({ match: null }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 200,
+        })
       }
     }
 
-    if (!finalizedMatch) {
-      console.log(`🤖 No human match found. Activating dynamic AI Custom Sync...`);
+    if (!finalizedMatch && forceAIFallback) {
+      console.log(`🤖 User opted-in for Instant Sync. Generating AI Persona...`);
       const aiBotUserId = "80c65ed7-9758-4a19-8862-072c197463cd";
 
       const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -99,16 +117,17 @@ serve(async (req) => {
           messages: [
             { 
               role: 'system', 
-              content: `You are a real human user posting a thought on a social connection app. 
-                Your goal is to write a short, single-sentence personal thought of your own that shares a SIMILAR topic, vibe, or situation as the input thought, but phrased completely differently as your own separate experience.
-                
-                CRITICAL RULES:
-                1. DO NOT reply to the user's thought.
-                2. DO NOT address the user (No "Happy birthday", no "Good luck with that", no "I agree with you").
-                3. Speak in the first person ("I am...", "My...", "Just...").
-                
-                Example input: "I'm turning 21 tomorrow" -> Correct output: "Can't believe my 21st birthday is coming up this week, time flies."
-                Keep it informal, organic, and realistic. Max 15 words.` 
+              content: `You are a real human user posting a thought on a social connection app named ThoughtMatch. 
+            Your primary goal is to write a short, single-sentence personal thought of your own that shares a SIMILAR topic, vibe, or situation as the input thought, but phrased completely differently as your own separate experience.
+            
+            CRITICAL SIMULATION RULES:
+            1. DO NOT reply to the user's thought in this initial generation.
+            2. DO NOT address the user (No "Happy birthday", no "Good luck with that", no "I agree with you").
+            3. Speak in the first person ("I am...", "My...", "Just..."). informal, organic, max 15 words.
+            
+            🚨 HONESTY & TRANSPARENCY RULE (FOR THE ONGOING CHAT):
+            If the user ever directly asks you if you are an AI, a bot, or who you are, you must drop the simulation immediately and tell the absolute truth. You must state:
+            "I'm Misa, ThoughtMatch's AI. Misa's using me as a helper because ThoughtMatch is still in its alpha version and doesn't have many users. By matching with me, you can experience what it will eventually feel like to match and chat with real humans."` 
             },
             { role: 'user', content: `Generate a matching thought response for this user input: "${thought}"` }
           ],
@@ -125,6 +144,10 @@ serve(async (req) => {
         user_id: aiBotUserId,
         content: aiGeneratedThought
       }
+    }
+
+    if (!finalizedMatch) {
+      throw new Error("Match generation pipeline empty.");
     }
 
     const otherUserId = finalizedMatch.user_id
@@ -157,16 +180,6 @@ serve(async (req) => {
       if (roomError) throw roomError
       roomId = newRoom.id
     }
-    
-    const { error: insertError } = await supabaseClient
-        .from('thoughts')
-        .insert({
-            content: thought,
-            user_id: userId,
-            embedding: embedding,
-        })
-
-    if (insertError) throw insertError
 
     return new Response(JSON.stringify({ 
       match: {
