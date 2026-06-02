@@ -34,6 +34,8 @@ const resources = {
             three_chats: "You currently have 3 active chats. You must abandon or close at least one of your current conversations before matching on a new thought.",
             view_matches: "View My Matches",
             cancel: "Cancel",
+            chat_with_AI: 'Chat with AI',
+            wait: 'Okay, Wait',
 
             
             matched_on: "You matched on:",
@@ -93,6 +95,8 @@ const resources = {
             limit_reached: "Se ha alcanzado el límite de chat",
             three_chats: "Actualmente tienes 3 chats activos. Debes abandonar o cerrar al menos una de tus conversaciones actuales antes de poder conectar con un nuevo pensamiento.",
             view_matches: "Ver mis matches",
+            chat_with_AI: 'Chatea con IA',
+            wait: 'Okay, Esperar',
 
             matched_on: "Conectaste en:",
             with: "con",

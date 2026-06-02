@@ -11,6 +11,7 @@ interface PopupConfig {
   title: string;
   message: string;
   primaryButtonText?: string;
+  secondaryButtonText?: string;
   onPrimaryPress?: () => void;
 }
 
@@ -77,12 +78,13 @@ export default function HomeScreen() {
       message: '',
     });
 
-    const triggerPopup = (title: string, message: string, primaryButtonText?: string, onPrimaryPress?: () => void) => {
+    const triggerPopup = (title: string, message: string, primaryButtonText?: string, onPrimaryPress?: () => void, secondaryButtonText?: string) => {
       setPopupConfig({
         visible: true,
         title,
         message,
         primaryButtonText,
+        secondaryButtonText,
         onPrimaryPress,
       });
     };
@@ -98,7 +100,8 @@ export default function HomeScreen() {
               () => {
                 setPopupConfig(prev => ({ ...prev, visible: false }));
                 router.push('/matches');
-              }
+              },
+              t('cancel')
             );
         } else {
             triggerPopup("Matching Error", errorMessage);
@@ -196,8 +199,9 @@ export default function HomeScreen() {
           triggerPopup(
             t('new_thought'),
             t('alert_match_not_found') || "Your thought is pinned and waiting for a human match. In the meantime, do you want to unlock an AI Reflection Buddy to explore this thought right now?",
-            "Chat with AI",
-          () => handleForceAIMatch(currentThoughtText, user.id)
+            t('chat_with_AI'),
+          () => handleForceAIMatch(currentThoughtText, user.id),
+          t('wait')
           );
         }
 
@@ -283,7 +287,7 @@ export default function HomeScreen() {
                 }}
               >
                 <Text style={styles.popupCloseButtonText}>
-                  {popupConfig.primaryButtonText ? 'Ok, Wait' : "Close"}
+                  {popupConfig.secondaryButtonText || 'Close'}
                 </Text>
               </TouchableOpacity>
             </View>
