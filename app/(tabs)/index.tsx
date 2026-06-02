@@ -130,7 +130,7 @@ export default function HomeScreen() {
         } catch (e: any){
             console.error("AI Fallback creation crash:", e.message);
             setStatus('idle');
-            triggerPopup("AI Connection Failed", "Could not generate companion link at this time.")
+            handleMatchError(e.message || "An unexpected error occurred." )
         }
     };
 

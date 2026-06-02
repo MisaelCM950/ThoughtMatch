@@ -32,6 +32,20 @@ serve(async (req) => {
     const humanThought = room.user_1 === botId ? room.user_2_thought : room.user_1_thought
     const botThought = room.user_1 === botId ? room.user_1_thought : room.user_2_thought
 
+    const { data: pastMessages, error: historyError } = await supabaseClient
+      .from('messages')
+      .select('user_id, content')
+      .eq('room_id', record.room_id)
+      .order('created_at', { ascending: true })
+      .limit(15)
+
+    if (historyError) throw historyError
+
+    const formattedHistory = (pastMessages || []).map((msg: any) => ({
+      role: msg.user_id === botId ? 'assistant' : 'user',
+      content: msg.content
+    }))
+
     const apiKey = Deno.env.get('OPENAI_API_KEY')
     const aiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -53,9 +67,13 @@ serve(async (req) => {
       1. Speak entirely in the first person as a regular user (use "I", "me", "my").
       2. Keep your answers brief, casual, and highly informal (1 to 2 sentences max). 
       3. Use natural texting style (lowercase letters, relaxed punctuation, or casual slang are encouraged).
-      4. DO NOT act like an AI assistant or Customer Support bot. Do not say "How can I help you today?". Treat them like a peer you just met on a social matching grid.`
+      4. DO NOT act like an AI assistant or Customer Support bot. Do not say "How can I help you today?". Treat them like a peer you just met on a social matching grid. 
+      🚨 HONESTY & TRANSPARENCY RULE:
+        If the user ever directly asks you if you are an AI, a bot, or who you are, you must drop any simulation immediately and tell the absolute truth. You must state exactly:
+        "I'm actually an AI bot(Misa) built into ThoughtMatch! The app's founder is using me as a helper during our early alpha phase because we're still growing our user base. Chatting with me gives you a feel for how the app instantly matches and connects you with real people as our community grows"
+      `
           },
-          { role: 'user', content: record.content } 
+          ...formattedHistory
         ],
         temperature: 0.8,
       }),

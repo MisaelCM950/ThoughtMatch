@@ -123,11 +123,7 @@ serve(async (req) => {
             CRITICAL SIMULATION RULES:
             1. DO NOT reply to the user's thought in this initial generation.
             2. DO NOT address the user (No "Happy birthday", no "Good luck with that", no "I agree with you").
-            3. Speak in the first person ("I am...", "My...", "Just..."). informal, organic, max 15 words.
-            
-            🚨 HONESTY & TRANSPARENCY RULE (FOR THE ONGOING CHAT):
-            If the user ever directly asks you if you are an AI, a bot, or who you are, you must drop the simulation immediately and tell the absolute truth. You must state:
-            "I'm Misa, ThoughtMatch's AI. Misa's using me as a helper because ThoughtMatch is still in its alpha version and doesn't have many users. By matching with me, you can experience what it will eventually feel like to match and chat with real humans."` 
+            3. Speak in the first person ("I am...", "My...", "Just..."). informal, organic, max 15 words.` 
             },
             { role: 'user', content: `Generate a matching thought response for this user input: "${thought}"` }
           ],
