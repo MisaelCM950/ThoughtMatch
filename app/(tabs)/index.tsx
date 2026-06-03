@@ -119,6 +119,9 @@ export default function HomeScreen() {
         const fetchRecentThoughts = async () => {
             try{
 
+            const {data: authData} = await supabase.auth.getUser();
+            const currentUserId = authData?.user?.id;
+
             const {data: rooms, error: roomsError} = await supabase
                 .from('match_rooms')
                 .select('user_1, user_2, abandoned_by');
@@ -142,6 +145,10 @@ export default function HomeScreen() {
                 .from('thoughts')
                 .select('content, created_at, user_id')
                 .order('created_at', {ascending: false});
+
+            if(currentUserId) {
+                query = query.not('user_id', 'eq', currentUserId);
+            }
 
             if(fullUserIds.length > 0) {
                 query = query.not('user_id', 'in', `(${fullUserIds.join(',')})`)
