@@ -117,16 +117,45 @@ export default function HomeScreen() {
 
     useEffect(()=> {
         const fetchRecentThoughts = async () => {
-            const {data, error} = await supabase
-                .from('thoughts')
-                .select('content, created_at')
-                .order('created_at', {ascending: false})
-                .limit(20);
-            if(!error && data) {
-                setRecentThoughts(data);
-            }
-        };
+            try{
 
+            const {data: rooms, error: roomsError} = await supabase
+                .from('match_rooms')
+                .select('user_1, user_2, abandoned_by');
+
+            if(roomsError) throw roomsError;
+
+            const activeChatCounts: Record<string, number> = {};
+
+            (rooms || []).forEach(room => {
+                if(!room.abandoned_by) {
+                    activeChatCounts[room.user_1] = (activeChatCounts[room.user_1] || 0) + 1;
+                    activeChatCounts[room.user_2] = (activeChatCounts[room.user_2] || 0) + 1;
+                }
+            });
+
+            const fullUserIds = Object.keys(activeChatCounts).filter(
+                userId => activeChatCounts[userId] >= 3
+            );
+
+            let query = supabase
+                .from('thoughts')
+                .select('content, created_at, user_id')
+                .order('created_at', {ascending: false});
+
+            if(fullUserIds.length > 0) {
+                query = query.not('user_id', 'in', `(${fullUserIds.join(',')})`)
+            }
+
+            const {data: thoughts, error: thoughtsError} = await query.limit(20);
+
+            if(!thoughtsError && thoughts) {
+                setRecentThoughts(thoughts)
+            }
+        } catch (err: any) {
+            console.error("Error loading interactive thoughts loop:", err.message);
+        }
+        };
         fetchRecentThoughts();
     }, [status])
 
