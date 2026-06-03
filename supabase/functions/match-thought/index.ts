@@ -37,6 +37,27 @@ serve(async (req) => {
 
     const { thought, forceAIFallback } = await req.json()
     const userId = user.id;
+
+    const {data: rooms, error: roomsCheckError} = await supabaseClient
+        .from('match_rooms')
+        .select('user_1, user_2, abandoned_by');
+
+    if(roomsCheckError) throw roomsCheckError;
+
+    const activeChatsCount = (rooms || []).filter(room => {
+      return !room.abandoned_by && (room.user_1 === userId || room.user_2 === userId);
+    }).length;
+
+    if(activeChatsCount >= 3) {
+        return new Response(JSON.stringify({
+            diagnosticErrorTriggered: true,
+            message: "maximum limit of 3 active chats"
+        }), {
+            headers: {...corsHeaders, 'Content-Type': 'application/json'},
+            status: 200,
+        });
+    }
+
     const apiKey = Deno.env.get('OPENAI_API_KEY')
 
     const response = await fetch('https://api.openai.com/v1/embeddings', {
@@ -82,7 +103,6 @@ serve(async (req) => {
         }
       }
 
-      // If no human match is found on pass 1, save the thought and return null to trigger frontend popup
       if (!finalizedMatch) {
         console.log(`📌 No human match discovered. Pinning thought to queue database...`);
         const { error: insertError } = await supabaseClient

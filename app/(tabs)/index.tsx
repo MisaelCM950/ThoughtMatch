@@ -227,6 +227,31 @@ export default function HomeScreen() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) throw new Error("No user found");
 
+        const {data: rooms, error: roomsError} = await supabase
+            .from('match_rooms')
+            .select('user_1, user_2, abandoned_by');
+
+        if(!roomsError && rooms) {
+            const activeChatCounts = rooms.filter(room => {
+                return !room.abandoned_by && (room.user_1 === user.id || room.user_2 === user.id)
+            }).length;
+
+        if(activeChatCounts >= 3) {
+            setStatus('idle')
+            triggerPopup(
+                t('limit_reached'),
+                t('three_chats'),
+                t('view_matches'),
+                ()=> {
+                    setPopupConfig(prev => ({...prev, visible: false}));
+                    router.push('/matches');
+                },
+                t('cancel')
+            );
+            return;
+        }
+        }
+
         const { data, error } = await supabase.functions.invoke('match-thought', {
           body: { thought, userId: user.id }
         });
