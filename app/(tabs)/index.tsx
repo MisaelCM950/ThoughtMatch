@@ -79,7 +79,11 @@ export default function HomeScreen() {
     const [roomId, setRoomId] = useState<string | null>(null);
     const router = useRouter();
     const { t} = useTranslation();
+
+    const [isClientMounted, setIsCLientMounted] = useState<boolean>(false);
+
     useEffect(()=>{
+    setIsCLientMounted(true);
     initializedGlobalCounter();
 
     if(globalPresenceChannel) {
@@ -379,7 +383,7 @@ export default function HomeScreen() {
         </View>
         </View>
 
-        {recentThoughts.length > 0 && (
+        {isClientMounted && recentThoughts.length > 0 && (
             <View style={styles.recentSection}>
                 <View style={styles.recentHeaderRow}>
                     <Text style={styles.recentSectionTitle}>Recent Active Thoughts</Text>
