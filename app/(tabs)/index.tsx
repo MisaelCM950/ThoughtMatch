@@ -131,8 +131,10 @@ export default function HomeScreen() {
             const activeChatCounts: Record<string, number> = {};
 
             (rooms || []).forEach(room => {
-                if(!room.abandoned_by) {
+                if(room.abandoned_by !== room.user_1) {
                     activeChatCounts[room.user_1] = (activeChatCounts[room.user_1] || 0) + 1;
+                }
+                if(room.abandoned_by !== room.user_2) {               
                     activeChatCounts[room.user_2] = (activeChatCounts[room.user_2] || 0) + 1;
                 }
             });
