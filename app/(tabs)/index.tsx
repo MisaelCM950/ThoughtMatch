@@ -166,7 +166,22 @@ export default function HomeScreen() {
         }
         };
         fetchRecentThoughts();
-    }, [status])
+
+        const thoughtsSubscription = supabase
+            .channel('public-live-thoughts-feed')
+            .on(
+                'postgres_changes',
+                {event: 'INSERT', schema: 'public', table: 'thoughts'},
+                ()=> {
+                    fetchRecentThoughts();
+                }
+            )
+            .subscribe();
+
+            return ()=> {
+                supabase.removeChannel(thoughtsSubscription);
+            };
+    }, [status]);
 
     const handleMatchError = (errorMessage: string) => {
         console.log("Parsing function error", errorMessage);
