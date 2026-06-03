@@ -36,6 +36,8 @@ const resources = {
             cancel: "Cancel",
             chat_with_AI: 'Chat with AI',
             wait: 'Okay, Wait',
+            match_found: '🧠 Match Found!',
+            notification_payload: 'Someone matched with your thought! Click to jump into your chat room.',
 
             
             matched_on: "You matched on:",
@@ -97,6 +99,8 @@ const resources = {
             view_matches: "Ver mis matches",
             chat_with_AI: 'Chatea con IA',
             wait: 'Okay, Esperar',
+            match_found: '🧠 Match encontrado!', 
+            notication_payload: '¡Alguien ha conectado con tu idea! Haz clic para entrar en la sala de chat.',
 
             matched_on: "Conectaste en:",
             with: "con",

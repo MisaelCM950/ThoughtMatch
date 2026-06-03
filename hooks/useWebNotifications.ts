@@ -1,14 +1,18 @@
+import '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Platform } from 'react-native';
 
 let globalMatchChannel: any = null;
 let globalMatchListeners: Set<(newRoom: any) => void> = new Set();
 let isNotificationChannelInitializing = false;
+const { t } = useTranslation();
 
 const initializeGlobalMatchStream = async () => {
   if (globalMatchChannel || isNotificationChannelInitializing) return;
   isNotificationChannelInitializing = true;
+  
 
   const { data } = await supabase.auth.getUser();
   const currentUserId = data.user?.id || null;
@@ -59,9 +63,9 @@ export function useWebNotifications() {
 
     const handleIncomingMatchAlert = (newRoom: any) => {
       if (Notification.permission === 'granted') {
-        const notification = new Notification('🧠 ThoughtMatch Found!', {
-          body: `Someone matched with your thought! Click to jump into your chat room.`,
-          icon: '@/assets/images/favicon.png"',
+        const notification = new Notification(t('match_found'), {
+          body: t('notification_payload'),
+          icon: './assets/images/favicon.png"',
           tag: `match-${newRoom.id}`,
         });
 
