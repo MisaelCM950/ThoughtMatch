@@ -61,7 +61,7 @@ export function useWebNotifications() {
       if (Notification.permission === 'granted') {
         const notification = new Notification('🧠 ThoughtMatch Found!', {
           body: `Someone matched with your thought! Click to jump into your chat room.`,
-          icon: './assets/images/favicon.png"',
+          icon: '@/assets/images/favicon.png"',
           tag: `match-${newRoom.id}`,
         });
 

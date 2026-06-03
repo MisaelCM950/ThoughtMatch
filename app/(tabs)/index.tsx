@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
 interface PopupConfig {
   visible: boolean;
@@ -20,9 +20,18 @@ let globalPresenceChannel: any = null;
 let globalListeners: Set<(count: number)=> void> = new Set();
 
 const initializedGlobalCounter = () => {
-    if (globalPresenceChannel) return;
+    const globalRef = Platform.OS === 'web' ? (window as any) : globalThis;
+    if (globalRef.globalPresenceChannel) {
+        try {
+            supabase.removeChannel(globalRef.globalPresenceChannel);
+        }
+        catch (e){
+            console.log("Cleaning up dev channel")
+        }
+        globalRef.globalPresenceChannel = null;
+    }   
 
-    globalPresenceChannel = supabase.channel('global-online-counter', {
+    globalRef.globalPresenceChannel = supabase.channel('global-online-counter', {
         config: {
             presence: {
                 key: `device-token-${Math.random().toString(36).substring(7)}`,
@@ -30,25 +39,40 @@ const initializedGlobalCounter = () => {
         },
     });
 
-    globalPresenceChannel
+    globalRef.globalPresenceChannel
         .on('presence', {event: 'sync'}, ()=> {
-            const presenceState = globalPresenceChannel.presenceState();
+            const presenceState = globalRef.globalPresenceChannel.presenceState();
             const totalOnline = Object.keys(presenceState).length;
             const count = totalOnline > 0 ? totalOnline: 1;
             globalListeners.forEach((listener) => listener(count));
         })
         .subscribe((status: string)=> {
             if(status === 'SUBSCRIBED') {
-                globalPresenceChannel.track({
+                globalRef.globalPresenceChannel.track({
                     online_at: new Date().toISOString(),
                 }).catch((err: any)=> console.error('Global presence tracking block error:', err));
             }
         });
 };
 
+const getRelativeTime = (dateString: string) => {
+    const now = new Date();
+    const past = new Date(dateString);
+    const msPerMinute = 60 * 1000;
+    const msPerHour = msPerMinute * 60;
+    const msPerDay = msPerHour * 24;
+    const elapsed = now.getTime() - past.getTime();
+
+    if(elapsed < msPerMinute) return 'Just Now';
+    if(elapsed < msPerHour) return Math.round(elapsed / msPerMinute) + 'm ago';
+    if(elapsed < msPerDay) return Math.round(elapsed / msPerHour) + 'h ago';
+    return Math.round(elapsed / msPerDay) + 'd ago';
+};
+
 export default function HomeScreen() {
     useWebNotifications();
     const [onlineUserCount, setOnlineUserCount] = useState<number>(1);
+    const [recentThoughts, setRecentThoughts] = useState<any[]>([]);
     const pushToken = useNotifications();
     const [thought, setThought] = useState('');
     const [status, setStatus] = useState<'idle' | 'matching'  | 'queued' | 'matched'>('idle');
@@ -90,6 +114,21 @@ export default function HomeScreen() {
         onPrimaryPress,
       });
     };
+
+    useEffect(()=> {
+        const fetchRecentThoughts = async () => {
+            const {data, error} = await supabase
+                .from('thoughts')
+                .select('content, created_at')
+                .order('created_at', {ascending: false})
+                .limit(20);
+            if(!error && data) {
+                setRecentThoughts(data);
+            }
+        };
+
+        fetchRecentThoughts();
+    }, [status])
 
     const handleMatchError = (errorMessage: string) => {
         console.log("Parsing function error", errorMessage);
@@ -214,6 +253,10 @@ export default function HomeScreen() {
       }
     };
 
+    const handleSelectRecentThought = (selectedText: string) => {
+        setThought(selectedText);
+    };
+
   return (
     <View style={{ flex: 1, backgroundColor: '#121212' }}>
       <ScrollView style={styles.container} contentContainerStyle={styles.centerScrollContent}> 
@@ -258,6 +301,33 @@ export default function HomeScreen() {
         </View>
         </View>
 
+        {recentThoughts.length > 0 && (
+            <View style={styles.recentSection}>
+                <View style={styles.recentHeaderRow}>
+                    <Text style={styles.recentSectionTitle}>Recent Active Thoughts</Text>
+                    <Text style={styles.recentSectionSubtitle}>Tap a thought to write a matching reply instantly</Text>
+                </View>
+
+                <View style={styles.recentListContainer}>
+                    {recentThoughts.map((item, index) => (
+                        <TouchableOpacity
+                            key={index}
+                            style={styles.thoughtCard}
+                            onPress={()=> handleSelectRecentThought(item.content)}
+                            activeOpacity={0.7}
+                        >
+                            <Text style={styles.thoughtCardText} numberOfLines={3}>
+                                "{item.content}"
+                            </Text>
+                            <Text style={styles.thoughtCardTime}>
+                                {getRelativeTime(item.created_at)}
+                            </Text>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            </View>
+        )}
+
         </View>
       </ScrollView>
       <Modal
@@ -301,6 +371,56 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
+    recentSection: {
+      marginTop: 24,
+      width: '100%',
+      borderTopWidth: 1,
+      borderTopColor: '#232323',
+      paddingTop: 24,
+    },
+    recentHeaderRow: {
+      marginBottom: 14,
+      alignItems: 'center',
+    },
+    recentSectionTitle: {
+      color: '#FFFFFF',
+      fontSize: 18,
+      fontWeight: '700',
+      letterSpacing: 0.3,
+    },
+    recentSectionSubtitle: {
+      color: '#707070',
+      fontSize: 12,
+      marginTop: 2,
+      textAlign: 'center',
+    },
+    recentListContainer: {
+      gap: 10,
+      width: '100%',
+    },
+    thoughtCard: {
+      backgroundColor: '#181818',
+      borderRadius: 10,
+      padding: 16,
+      borderWidth: 1,
+      borderColor: '#242424',
+      flexDirection: 'column',
+      gap: 6,
+    },
+    thoughtCardText: {
+      color: '#E0E0E0',
+      fontSize: 14,
+      lineHeight: 20,
+      fontStyle: 'italic',
+    },
+    thoughtCardTime: {
+      color: '#555555',
+      fontSize: 11,
+      fontWeight: '600',
+      alignSelf: 'flex-end',
+    },
+
+
     modalOverlay: {
       flex: 1,
       backgroundColor: 'rgba(0, 0, 0, 0.75)',
