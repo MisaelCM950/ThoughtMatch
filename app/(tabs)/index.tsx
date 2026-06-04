@@ -113,60 +113,65 @@ export default function HomeScreen() {
         onPrimaryPress,
       });
     };
+    
+    const fetchRecentThoughts = async () => {
+        try {
+            const { data: authData } = await supabase.auth.getUser();
+            const currentUserId = authData?.user?.id;
+
+            const { data: rooms, error: roomsError } = await supabase
+                .from('match_rooms')
+                .select('user_1, user_2, abandoned_by');
+
+            if (roomsError) throw roomsError;
+
+            const activeChatCounts: Record<string, number> = {};
+
+            (rooms || []).forEach(room => {
+                if (room.abandoned_by !== room.user_1) {
+                    activeChatCounts[room.user_1] = (activeChatCounts[room.user_1] || 0) + 1;
+                }
+                if (room.abandoned_by !== room.user_2) {               
+                    activeChatCounts[room.user_2] = (activeChatCounts[room.user_2] || 0) + 1;
+                }
+            });
+
+            const fullUserIds = Object.keys(activeChatCounts).filter(
+                userId => activeChatCounts[userId] >= 3
+            );
+
+            let query = supabase
+                .from('thoughts')
+                .select('content, created_at, user_id')
+                .order('created_at', { ascending: false });
+
+            if (currentUserId) {
+                query = query.not('user_id', 'eq', currentUserId);
+            }
+
+            if (fullUserIds.length > 0) {
+                query = query.not('user_id', 'in', `(${fullUserIds.join(',')})`)
+            }
+
+            const { data: thoughts, error: thoughtsError } = await query.limit(20);
+
+            if (!thoughtsError && thoughts) {
+                setRecentThoughts(thoughts)
+            }
+        } catch (err: any) {
+            console.error("Error loading interactive thoughts loop:", err.message);
+        }
+    };
+
+    useEffect(() => {
+        if (isClientMounted) {
+            fetchRecentThoughts();
+        }
+    }, [status, isClientMounted]);
+
 
     useEffect(() => {
         if (!isClientMounted) return;
-
-        const fetchRecentThoughts = async () => {
-            try {
-                const { data: authData } = await supabase.auth.getUser();
-                const currentUserId = authData?.user?.id;
-
-                const { data: rooms, error: roomsError } = await supabase
-                    .from('match_rooms')
-                    .select('user_1, user_2, abandoned_by');
-
-                if (roomsError) throw roomsError;
-
-                const activeChatCounts: Record<string, number> = {};
-
-                (rooms || []).forEach(room => {
-                    if (room.abandoned_by !== room.user_1) {
-                        activeChatCounts[room.user_1] = (activeChatCounts[room.user_1] || 0) + 1;
-                    }
-                    if (room.abandoned_by !== room.user_2) {               
-                        activeChatCounts[room.user_2] = (activeChatCounts[room.user_2] || 0) + 1;
-                    }
-                });
-
-                const fullUserIds = Object.keys(activeChatCounts).filter(
-                    userId => activeChatCounts[userId] >= 3
-                );
-
-                let query = supabase
-                    .from('thoughts')
-                    .select('content, created_at, user_id')
-                    .order('created_at', { ascending: false });
-
-                if (currentUserId) {
-                    query = query.not('user_id', 'eq', currentUserId);
-                }
-
-                if (fullUserIds.length > 0) {
-                    query = query.not('user_id', 'in', `(${fullUserIds.join(',')})`)
-                }
-
-                const { data: thoughts, error: thoughtsError } = await query.limit(20);
-
-                if (!thoughtsError && thoughts) {
-                    setRecentThoughts(thoughts)
-                }
-            } catch (err: any) {
-                console.error("Error loading interactive thoughts loop:", err.message);
-            }
-        };
-
-        fetchRecentThoughts();
 
         const thoughtsSubscription = supabase
             .channel('public-live-thoughts-feed')
@@ -182,7 +187,7 @@ export default function HomeScreen() {
         return () => {
             supabase.removeChannel(thoughtsSubscription);
         };
-    }, [status, isClientMounted]);
+    }, [isClientMounted]);
 
     const handleMatchError = (errorMessage: string) => {
         console.log("Parsing function error", errorMessage);
@@ -333,74 +338,77 @@ export default function HomeScreen() {
     };
 
     const handleSelectRecentThought = async (selectedText: string, targetUserId: string) => {
-        try{
-            const {data: {user}} = await supabase.auth.getUser();
-            if(!user) throw new Error("No user found");
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("No user found");
 
-            if(user.id === targetUserId) return;
+            if (user.id === targetUserId) return; 
 
-            const {data: rooms, error: roomsError} = await supabase
-            .from('match_rooms')
-            .select('user_1, user_2, abandoned_by');
+            const { data: rooms, error: roomsError } = await supabase
+                .from('match_rooms')
+                .select('user_1, user_2, abandoned_by');
 
-        if(!roomsError && rooms) {
-            const activeChatCounts = rooms.filter(room => {
-                return !room.abandoned_by && (room.user_1 === user.id || room.user_2 === user.id)
-            }).length;
+            if (!roomsError && rooms) {
+                const activeChatCounts = rooms.filter(room => {
+                    return !room.abandoned_by && (room.user_1 === user.id || room.user_2 === user.id)
+                }).length;
 
-            if(activeChatCounts >= 3) {
-                setStatus('idle')
-                triggerPopup(
-                    t('limit_reached'),
-                    t('three_chats'),
-                    t('view_matches'),
-                    ()=> {
-                        setPopupConfig(prev => ({...prev, visible: false}));
-                        router.push('/matches');
-                    },
-                    t('cancel')
-                );
-                return;
+                if (activeChatCounts >= 3) {
+                    triggerPopup(
+                        t('limit_reached'),
+                        t('three_chats'),
+                        t('view_matches'),
+                        () => {
+                            setPopupConfig(prev => ({ ...prev, visible: false }));
+                            router.push('/matches');
+                        },
+                        t('cancel')
+                    );
+                    return;
+                }
             }
-        }
-        setStatus('matching');
 
-        const { data: existingRoom } = await supabase
+            setStatus('matching');
+
+            const { data: existingRoom } = await supabase
                 .from('match_rooms')
                 .select('id')
                 .or(`and(user_1.eq.${user.id},user_2.eq.${targetUserId}),and(user_1.eq.${targetUserId},user_2.eq.${user.id})`)
                 .maybeSingle();
-        let targetRoomId;
 
-        if(existingRoom) {
-            targetRoomId = existingRoom.id;
-        } else {
-            const {data: newRoom, error: roomError} = await supabase
-                .from('match_rooms')
-                .insert({
-                    user_1: user.id,
-                    user_2: targetUserId,
-                    user_1_thought: selectedText,
-                    user_2_thought: selectedText,
-                })
-                .select()
-                .single();
-            if(roomError) throw roomError;
-            targetRoomId = newRoom.id;
-        }
+            let targetRoomId;
 
-        setStatus('matched');
-        setTimeout(() => {
+            if (existingRoom) {
+                targetRoomId = existingRoom.id;
+            } else {
+                const { data: newRoom, error: roomError } = await supabase
+                    .from('match_rooms')
+                    .insert({
+                        user_1: user.id,
+                        user_2: targetUserId,
+                        user_1_thought: selectedText,
+                        user_2_thought: selectedText
+                    })
+                    .select()
+                    .single();
+
+                if (roomError) throw roomError;
+                targetRoomId = newRoom.id;
+            }
+
+            setStatus('matched');
+            setTimeout(() => {
+                setStatus('idle');
+                router.push({
+                    pathname: '/chat',
+                    params: { roomId: targetRoomId, thought: selectedText }
+                });
+            }, 1000);
+
+        } catch (err: any) {
+            console.error("Direct connection failed:", err.message);
             setStatus('idle');
-            router.push({
-                pathname: '/chat',
-                params: {roomId: targetRoomId, thought: selectedText}
-            });
-        }, 1000);
-    } catch (err: any){
-        console.error('Direct connection failed:', err.message);
-        setStatus('idle');
-    }
+        }
     };
 
   return (
