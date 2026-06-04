@@ -124,74 +124,76 @@ export default function HomeScreen() {
       });
     };
 
-    useEffect(()=> {
-        if(!isClientMounted) return;
+    // 🛠️ CHANGED: Removed early return line, wrapped inner functions cleanly inside the mount condition check
+  useEffect(() => {
+    if (isClientMounted) {
         const fetchRecentThoughts = async () => {
-            try{
+            try {
+                const { data: authData } = await supabase.auth.getUser();
+                const currentUserId = authData?.user?.id;
 
-            const {data: authData} = await supabase.auth.getUser();
-            const currentUserId = authData?.user?.id;
+                const { data: rooms, error: roomsError } = await supabase
+                    .from('match_rooms')
+                    .select('user_1, user_2, abandoned_by');
 
-            const {data: rooms, error: roomsError} = await supabase
-                .from('match_rooms')
-                .select('user_1, user_2, abandoned_by');
+                if (roomsError) throw roomsError;
 
-            if(roomsError) throw roomsError;
+                const activeChatCounts: Record<string, number> = {};
 
-            const activeChatCounts: Record<string, number> = {};
+                (rooms || []).forEach(room => {
+                    if (room.abandoned_by !== room.user_1) {
+                        activeChatCounts[room.user_1] = (activeChatCounts[room.user_1] || 0) + 1;
+                    }
+                    if (room.abandoned_by !== room.user_2) {               
+                        activeChatCounts[room.user_2] = (activeChatCounts[room.user_2] || 0) + 1;
+                    }
+                });
 
-            (rooms || []).forEach(room => {
-                if(room.abandoned_by !== room.user_1) {
-                    activeChatCounts[room.user_1] = (activeChatCounts[room.user_1] || 0) + 1;
+                const fullUserIds = Object.keys(activeChatCounts).filter(
+                    userId => activeChatCounts[userId] >= 3
+                );
+
+                let query = supabase
+                    .from('thoughts')
+                    .select('content, created_at, user_id')
+                    .order('created_at', { ascending: false });
+
+                if (currentUserId) {
+                    query = query.not('user_id', 'eq', currentUserId);
                 }
-                if(room.abandoned_by !== room.user_2) {               
-                    activeChatCounts[room.user_2] = (activeChatCounts[room.user_2] || 0) + 1;
+
+                if (fullUserIds.length > 0) {
+                    query = query.not('user_id', 'in', `(${fullUserIds.join(',')})`)
                 }
-            });
 
-            const fullUserIds = Object.keys(activeChatCounts).filter(
-                userId => activeChatCounts[userId] >= 3
-            );
+                const { data: thoughts, error: thoughtsError } = await query.limit(20);
 
-            let query = supabase
-                .from('thoughts')
-                .select('content, created_at, user_id')
-                .order('created_at', {ascending: false});
-
-            if(currentUserId) {
-                query = query.not('user_id', 'eq', currentUserId);
+                if (!thoughtsError && thoughts) {
+                    setRecentThoughts(thoughts)
+                }
+            } catch (err: any) {
+                console.error("Error loading interactive thoughts loop:", err.message);
             }
-
-            if(fullUserIds.length > 0) {
-                query = query.not('user_id', 'in', `(${fullUserIds.join(',')})`)
-            }
-
-            const {data: thoughts, error: thoughtsError} = await query.limit(20);
-
-            if(!thoughtsError && thoughts) {
-                setRecentThoughts(thoughts)
-            }
-        } catch (err: any) {
-            console.error("Error loading interactive thoughts loop:", err.message);
-        }
         };
+
         fetchRecentThoughts();
 
         const thoughtsSubscription = supabase
             .channel('public-live-thoughts-feed')
             .on(
                 'postgres_changes',
-                {event: 'INSERT', schema: 'public', table: 'thoughts'},
-                ()=> {
+                { event: 'INSERT', schema: 'public', table: 'thoughts' },
+                () => {
                     fetchRecentThoughts();
                 }
             )
             .subscribe();
 
-            return ()=> {
-                supabase.removeChannel(thoughtsSubscription);
-            };
-    }, [status, isClientMounted]);
+        return () => {
+            supabase.removeChannel(thoughtsSubscription);
+        };
+    }
+  }, [status, isClientMounted]);
 
     const handleMatchError = (errorMessage: string) => {
         console.log("Parsing function error", errorMessage);
