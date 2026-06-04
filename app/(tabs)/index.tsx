@@ -86,25 +86,25 @@ export default function HomeScreen() {
         setIsClientMounted(true);
     }, []);
 
-    useEffect(()=>{
-    if(!isClientMounted) return;
+    useEffect(() => {
+    if (isClientMounted) {
+        initializedGlobalCounter();
 
-    initializedGlobalCounter();
+        if (globalPresenceChannel) {
+            const initialState = globalPresenceChannel.presenceState();
+            const initialCount = Object.keys(initialState).length;
+            setOnlineUserCount(initialCount > 0 ? initialCount : 1);
+        }
 
-    if(globalPresenceChannel) {
-        const initialState = globalPresenceChannel.presenceState();
-        const initialCount = Object.keys(initialState).length;
-        setOnlineUserCount(initialCount > 0 ? initialCount : 1);
+        const handleLiveCounterUpdate = (count: number) => {
+            setOnlineUserCount(count);
+        };
+        globalListeners.add(handleLiveCounterUpdate);
+
+        return () => {
+            globalListeners.delete(handleLiveCounterUpdate);
+        };
     }
-
-    const handleLiveCounterUpdate = (count: number) => {
-        setOnlineUserCount(count);
-    };
-    globalListeners.add(handleLiveCounterUpdate);
-
-    return ()=> {
-        globalListeners.delete(handleLiveCounterUpdate);
-    };
   }, [isClientMounted]);
 
     const [popupConfig, setPopupConfig] = useState<PopupConfig>({
