@@ -80,10 +80,15 @@ export default function HomeScreen() {
     const router = useRouter();
     const { t} = useTranslation();
 
-    const [isClientMounted, setIsCLientMounted] = useState<boolean>(false);
+    const [isClientMounted, setIsClientMounted] = useState<boolean>(false);
+
+    useEffect(()=> {
+        setIsClientMounted(true);
+    }, []);
 
     useEffect(()=>{
-    setIsCLientMounted(true);
+    if(!isClientMounted) return;
+
     initializedGlobalCounter();
 
     if(globalPresenceChannel) {
@@ -100,7 +105,7 @@ export default function HomeScreen() {
     return ()=> {
         globalListeners.delete(handleLiveCounterUpdate);
     };
-  }, []);
+  }, [isClientMounted]);
 
     const [popupConfig, setPopupConfig] = useState<PopupConfig>({
       visible: false,
@@ -120,6 +125,7 @@ export default function HomeScreen() {
     };
 
     useEffect(()=> {
+        if(!isClientMounted) return;
         const fetchRecentThoughts = async () => {
             try{
 
@@ -185,7 +191,7 @@ export default function HomeScreen() {
             return ()=> {
                 supabase.removeChannel(thoughtsSubscription);
             };
-    }, [status]);
+    }, [status, isClientMounted]);
 
     const handleMatchError = (errorMessage: string) => {
         console.log("Parsing function error", errorMessage);
@@ -374,7 +380,6 @@ export default function HomeScreen() {
 
           <View style={{ padding: 20, alignItems: 'center' }}>
 
-        {/* 🟢 Live Counter UI Badge */}
         <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a1a', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 }}>
             <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#4ADE80', marginRight: 8 }} />
             <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>
