@@ -68,7 +68,6 @@ const getRelativeTime = (dateString: string) => {
 };
 
 export default function HomeScreen() {
-    // 🛠️ CHANGED: Keep simple, standard primitives at the root render level
     const [onlineUserCount, setOnlineUserCount] = useState<number>(1);
     const [recentThoughts, setRecentThoughts] = useState<any[]>([]);
     const [thought, setThought] = useState('');
@@ -78,7 +77,6 @@ export default function HomeScreen() {
     const { t } = useTranslation();
     const [isClientMounted, setIsClientMounted] = useState<boolean>(false);
 
-    // 🛠️ CHANGED: Safely handle custom subscription initializations here
     useEffect(() => {
         setIsClientMounted(true);
         initializedGlobalCounter();
@@ -116,7 +114,6 @@ export default function HomeScreen() {
       });
     };
 
-    // 🛠️ CHANGED: Wrapped thoughts query inside standard condition statement to preserve strict count ordering
     useEffect(() => {
         if (!isClientMounted) return;
 
@@ -335,8 +332,75 @@ export default function HomeScreen() {
       }
     };
 
-    const handleSelectRecentThought = (selectedText: string) => {
-        setThought(selectedText);
+    const handleSelectRecentThought = async (selectedText: string, targetUserId: string) => {
+        try{
+            const {data: {user}} = await supabase.auth.getUser();
+            if(!user) throw new Error("No user found");
+
+            if(user.id === targetUserId) return;
+
+            const {data: rooms, error: roomsError} = await supabase
+            .from('match_rooms')
+            .select('user_1, user_2, abandoned_by');
+
+        if(!roomsError && rooms) {
+            const activeChatCounts = rooms.filter(room => {
+                return !room.abandoned_by && (room.user_1 === user.id || room.user_2 === user.id)
+            }).length;
+
+            if(activeChatCounts >= 3) {
+                setStatus('idle')
+                triggerPopup(
+                    t('limit_reached'),
+                    t('three_chats'),
+                    t('view_matches'),
+                    ()=> {
+                        setPopupConfig(prev => ({...prev, visible: false}));
+                        router.push('/matches');
+                    },
+                    t('cancel')
+                );
+                return;
+            }
+        }
+        setStatus('matching');
+
+        const { data: existingRoom } = await supabase
+                .from('match_rooms')
+                .select('id')
+                .or(`and(user_1.eq.${user.id},user_2.eq.${targetUserId}),and(user_1.eq.${targetUserId},user_2.eq.${user.id})`)
+                .maybeSingle();
+        let targetRoomId;
+
+        if(existingRoom) {
+            targetRoomId = existingRoom.id;
+        } else {
+            const {data: newRoom, error: roomError} = await supabase
+                .from('match_rooms')
+                .insert({
+                    user_1: user.id,
+                    user_2: targetUserId,
+                    user_1_thought: selectedText,
+                    user_2_thought: selectedText,
+                })
+                .select()
+                .single();
+            if(roomError) throw roomError;
+            targetRoomId = newRoom.id;
+        }
+
+        setStatus('matched');
+        setTimeout(() => {
+            setStatus('idle');
+            router.push({
+                pathname: '/chat',
+                params: {roomId: targetRoomId, thought: selectedText}
+            });
+        }, 1000);
+    } catch (err: any){
+        console.error('Direct connection failed:', err.message);
+        setStatus('idle');
+    }
     };
 
   return (
@@ -394,7 +458,7 @@ export default function HomeScreen() {
                         <TouchableOpacity
                             key={index}
                             style={styles.thoughtCard}
-                            onPress={()=> handleSelectRecentThought(item.content)}
+                            onPress={()=> handleSelectRecentThought(item.content, item.user_id)}
                             activeOpacity={0.7}
                         >
                             <Text style={styles.thoughtCardText} numberOfLines={3}>

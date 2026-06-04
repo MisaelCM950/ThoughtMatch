@@ -35,7 +35,7 @@ serve(async (req) => {
       });
     }
 
-    const { thought, forceAIFallback } = await req.json()
+    const { thought, forceAIFallback, targetUserId } = await req.json()
     const userId = user.id;
 
     const {data: rooms, error: roomsCheckError} = await supabaseClient
@@ -76,6 +76,17 @@ serve(async (req) => {
     if (!result.data) throw new Error("OpenAI Embedding Error: " + JSON.stringify(result))
     const embedding = result.data[0].embedding
 
+    
+        const {error: insertError} = await supabaseClient
+            .from('thoughts')
+            .insert({
+                content: thought,
+                user_id: userId,
+                embedding: embedding,
+            })
+
+        if(insertError) throw insertError
+
     const targetThreshold = 0.40;
     let finalizedMatch = null;
 
@@ -105,16 +116,6 @@ serve(async (req) => {
 
       if (!finalizedMatch) {
         console.log(`📌 No human match discovered. Pinning thought to queue database...`);
-        const { error: insertError } = await supabaseClient
-          .from('thoughts')
-          .insert({
-              content: thought,
-              user_id: userId,
-              embedding: embedding,
-          })
-
-        if (insertError) throw insertError
-
         return new Response(JSON.stringify({ match: null }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
           status: 200,
