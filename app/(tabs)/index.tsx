@@ -350,6 +350,8 @@ export default function HomeScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.centerScrollContent}> 
         <View style={styles.content}>
           <Text style={styles.titleApp}>ThoughtMatch</Text>
+          {isClientMounted && (
+            <>
           <Text style={styles.title}>{t("what_thought")}</Text>
         
           <TextInput 
@@ -413,6 +415,8 @@ export default function HomeScreen() {
                     ))}
                 </View>
             </View>
+            )}
+            </>
         )}
 
         </View>
