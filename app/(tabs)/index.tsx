@@ -69,23 +69,51 @@ const getRelativeTime = (dateString: string) => {
     return Math.round(elapsed / msPerDay) + 'd ago';
 };
 
-// 🛠️ ROOT WRAPPER: Handles server hydration safely by rendering a loading black screen first
+// 🛠️ CHANGED: Master Diagnostic Root component to force error exposure on production build templates
 export default function HomeScreen() {
     const [isClientMounted, setIsClientMounted] = useState<boolean>(false);
+    const [fatalError, setFatalError] = useState<string | null>(null);
 
     useEffect(() => {
+        // Intercept global browser canvas failures instantly
+        if (typeof window !== 'undefined') {
+            window.onerror = function (message, source, lineno, colno, error) {
+                const logTrace = `MESSAGE: ${message}\nSOURCE: ${source}\nLINE: ${lineno}:${colno}\nSTACK: ${error?.stack}`;
+                setFatalError(logTrace);
+                return false;
+            };
+        }
         setIsClientMounted(true);
     }, []);
+
+    // 🛠️ CHANGED: If a hidden hook loop triggers an engine exception, render the stack trace on-screen instantly
+    if (fatalError) {
+        return (
+            <ScrollView style={{ flex: 1, backgroundColor: '#1c1c1c', padding: 24 }}>
+                <Text style={{ color: '#ff4a4a', fontSize: 22, fontWeight: 'bold', marginBottom: 16 }}>
+                    🛑 LIVE CRITICAL LOG DIAGNOSTIC
+                </Text>
+                <Text style={{ color: '#fff', fontSize: 13, fontFamily: 'monospace', backgroundColor: '#000', padding: 16, borderRadius: 8, borderWidth: 1, borderColor: '#444', lineHeight: 20 }}>
+                    {fatalError}
+                </Text>
+                <TouchableOpacity 
+                    style={{ marginTop: 24, backgroundColor: '#2686b3', padding: 16, borderRadius: 8, alignItems: 'center' }}
+                    onPress={() => setFatalError(null)}
+                >
+                    <Text style={{ color: '#fff', fontWeight: 'bold' }}>Clear Log Window & Retry</Text>
+                </TouchableOpacity>
+            </ScrollView>
+        );
+    }
 
     if (!isClientMounted) {
         return <View style={{ flex: 1, backgroundColor: '#121212' }} />;
     }
 
-    return <SafeHomeScreenContent isClientMounted={isClientMounted} />;
+    return <SafeHomeScreenContent />;
 }
 
-// 🛠️ ACTUAL APP CONTENT: Safe to use notification hooks here because it only renders on client
-function SafeHomeScreenContent({ isClientMounted }: { isClientMounted: boolean }) {
+function SafeHomeScreenContent() {
     useWebNotifications();
     const pushToken = useNotifications();
     
