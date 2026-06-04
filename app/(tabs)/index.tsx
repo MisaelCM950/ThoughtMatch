@@ -113,7 +113,7 @@ export default function HomeScreen() {
         onPrimaryPress,
       });
     };
-    
+
     const fetchRecentThoughts = async () => {
         try {
             const { data: authData } = await supabase.auth.getUser();
@@ -164,17 +164,13 @@ export default function HomeScreen() {
     };
 
     useEffect(() => {
-        if (isClientMounted) {
-            fetchRecentThoughts();
-        }
-    }, [status, isClientMounted]);
-
-
-    useEffect(() => {
         if (!isClientMounted) return;
 
+        fetchRecentThoughts();
+        const channelUniqueId = `thoughts-feed-stream-${Math.random().toString(36).substring(7)}`;
+
         const thoughtsSubscription = supabase
-            .channel('public-live-thoughts-feed')
+            .channel(channelUniqueId)
             .on(
                 'postgres_changes',
                 { event: 'INSERT', schema: 'public', table: 'thoughts' },
@@ -188,6 +184,12 @@ export default function HomeScreen() {
             supabase.removeChannel(thoughtsSubscription);
         };
     }, [isClientMounted]);
+
+    useEffect(() => {
+        if (isClientMounted && status == 'idle') {
+            fetchRecentThoughts();
+        }
+    }, [status, isClientMounted]);
 
     const handleMatchError = (errorMessage: string) => {
         console.log("Parsing function error", errorMessage);
