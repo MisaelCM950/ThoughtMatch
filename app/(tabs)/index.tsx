@@ -69,25 +69,35 @@ const getRelativeTime = (dateString: string) => {
     return Math.round(elapsed / msPerDay) + 'd ago';
 };
 
+// 🛠️ ROOT WRAPPER: Handles server hydration safely by rendering a loading black screen first
 export default function HomeScreen() {
+    const [isClientMounted, setIsClientMounted] = useState<boolean>(false);
+
+    useEffect(() => {
+        setIsClientMounted(true);
+    }, []);
+
+    if (!isClientMounted) {
+        return <View style={{ flex: 1, backgroundColor: '#121212' }} />;
+    }
+
+    return <SafeHomeScreenContent isClientMounted={isClientMounted} />;
+}
+
+// 🛠️ ACTUAL APP CONTENT: Safe to use notification hooks here because it only renders on client
+function SafeHomeScreenContent({ isClientMounted }: { isClientMounted: boolean }) {
     useWebNotifications();
+    const pushToken = useNotifications();
+    
     const [onlineUserCount, setOnlineUserCount] = useState<number>(1);
     const [recentThoughts, setRecentThoughts] = useState<any[]>([]);
-    const pushToken = useNotifications();
     const [thought, setThought] = useState('');
     const [status, setStatus] = useState<'idle' | 'matching'  | 'queued' | 'matched'>('idle');
     const [roomId, setRoomId] = useState<string | null>(null);
     const router = useRouter();
-    const { t} = useTranslation();
-
-    const [isClientMounted, setIsClientMounted] = useState<boolean>(false);
-
-    useEffect(()=> {
-        setIsClientMounted(true);
-    }, []);
+    const { t } = useTranslation();
 
     useEffect(() => {
-    if (isClientMounted) {
         initializedGlobalCounter();
 
         if (globalPresenceChannel) {
@@ -104,8 +114,7 @@ export default function HomeScreen() {
         return () => {
             globalListeners.delete(handleLiveCounterUpdate);
         };
-    }
-  }, [isClientMounted]);
+    }, []);
 
     const [popupConfig, setPopupConfig] = useState<PopupConfig>({
       visible: false,
@@ -124,9 +133,7 @@ export default function HomeScreen() {
       });
     };
 
-    // 🛠️ CHANGED: Removed early return line, wrapped inner functions cleanly inside the mount condition check
-  useEffect(() => {
-    if (isClientMounted) {
+    useEffect(() => {
         const fetchRecentThoughts = async () => {
             try {
                 const { data: authData } = await supabase.auth.getUser();
@@ -192,8 +199,7 @@ export default function HomeScreen() {
         return () => {
             supabase.removeChannel(thoughtsSubscription);
         };
-    }
-  }, [status, isClientMounted]);
+    }, [status]);
 
     const handleMatchError = (errorMessage: string) => {
         console.log("Parsing function error", errorMessage);
@@ -265,20 +271,20 @@ export default function HomeScreen() {
                 return !room.abandoned_by && (room.user_1 === user.id || room.user_2 === user.id)
             }).length;
 
-        if(activeChatCounts >= 3) {
-            setStatus('idle')
-            triggerPopup(
-                t('limit_reached'),
-                t('three_chats'),
-                t('view_matches'),
-                ()=> {
-                    setPopupConfig(prev => ({...prev, visible: false}));
-                    router.push('/matches');
-                },
-                t('cancel')
-            );
-            return;
-        }
+            if(activeChatCounts >= 3) {
+                setStatus('idle')
+                triggerPopup(
+                    t('limit_reached'),
+                    t('three_chats'),
+                    t('view_matches'),
+                    ()=> {
+                        setPopupConfig(prev => ({...prev, visible: false}));
+                        router.push('/matches');
+                    },
+                    t('cancel')
+                );
+                return;
+            }
         }
 
         const { data, error } = await supabase.functions.invoke('match-thought', {
@@ -352,8 +358,6 @@ export default function HomeScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.centerScrollContent}> 
         <View style={styles.content}>
           <Text style={styles.titleApp}>ThoughtMatch</Text>
-          {isClientMounted && (
-            <>
           <Text style={styles.title}>{t("what_thought")}</Text>
         
           <TextInput 
@@ -383,16 +387,15 @@ export default function HomeScreen() {
           </TouchableOpacity>
 
           <View style={{ padding: 20, alignItems: 'center' }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a1a', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 }}>
+                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#4ADE80', marginRight: 8 }} />
+                <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>
+                {onlineUserCount} {onlineUserCount === 1 ? 'person' : 'people'} online
+                </Text>
+            </View>
+          </View>
 
-        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#1a1a1a', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 }}>
-            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#4ADE80', marginRight: 8 }} />
-            <Text style={{ color: '#fff', fontSize: 14, fontWeight: '600' }}>
-            {onlineUserCount} {onlineUserCount === 1 ? 'person' : 'people'} online
-            </Text>
-        </View>
-        </View>
-
-        {isClientMounted && recentThoughts.length > 0 && (
+          {recentThoughts.length > 0 && (
             <View style={styles.recentSection}>
                 <View style={styles.recentHeaderRow}>
                     <Text style={styles.recentSectionTitle}>Recent Active Thoughts</Text>
@@ -417,9 +420,7 @@ export default function HomeScreen() {
                     ))}
                 </View>
             </View>
-            )}
-            </>
-        )}
+          )}
 
         </View>
       </ScrollView>
