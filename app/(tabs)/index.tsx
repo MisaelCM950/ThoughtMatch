@@ -1,3 +1,5 @@
+import { useNotifications } from '@/hooks/useNotifications';
+import { useWebNotifications } from '@/hooks/useWebNotifications';
 import '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
@@ -68,6 +70,8 @@ const getRelativeTime = (dateString: string) => {
 };
 
 export default function HomeScreen() {
+    useWebNotifications();
+    const pushToken = useNotifications();
     const [onlineUserCount, setOnlineUserCount] = useState<number>(1);
     const [recentThoughts, setRecentThoughts] = useState<any[]>([]);
     const [thought, setThought] = useState('');
@@ -130,7 +134,7 @@ export default function HomeScreen() {
             const activeChatCounts: Record<string, number> = {};
 
             (rooms || []).forEach(room => {
-                if (room.abandoned_by) {
+                if (!room.abandoned_by) {
                     activeChatCounts[room.user_1] = (activeChatCounts[room.user_1] || 0) + 1;
                     activeChatCounts[room.user_2] = (activeChatCounts[room.user_2] || 0) + 1;
                 }
@@ -228,6 +232,7 @@ export default function HomeScreen() {
                 setStatus('matched');
                 setTimeout(() => {
                     setStatus('idle');
+                    setIsAIProcessing(false);
                     router.push({
                         pathname: '/chat',
                         params: {roomId: data.match.room_id, thought: userThought}
@@ -237,6 +242,7 @@ export default function HomeScreen() {
         } catch (e: any){
             console.error("AI Fallback creation crash:", e.message);
             setStatus('idle');
+            setIsAIProcessing(false);
             handleMatchError(e.message || "An unexpected error occurred." )
         }
     };
@@ -353,11 +359,11 @@ export default function HomeScreen() {
                 .select('user_1, user_2, abandoned_by');
 
             if (!roomsError && rooms) {
-                const activeChatCounts = rooms.filter(room => {
+                const targetUserChats = rooms.filter(room => {
                     return !room.abandoned_by && (room.user_1 === targetUserId || room.user_2 === targetUserId)
                 }).length;
 
-                if (activeChatCounts >= 3) {
+                if (targetUserChats >= 3) {
                     triggerPopup(
                         "User Busy", 
                         "This user has reached their maximum limit of active chats. Try matching with another active thought!"
@@ -515,6 +521,7 @@ export default function HomeScreen() {
               
               <TouchableOpacity 
                 style={[styles.popupCloseButton, !popupConfig.primaryButtonText && { width: '100%' }]} 
+                disabled={isAIProcessing}
                 onPress={() => {
                   setPopupConfig(prev => ({ ...prev, visible: false }));
                   setStatus('idle');
