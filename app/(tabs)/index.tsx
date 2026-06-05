@@ -477,8 +477,8 @@ export default function HomeScreen() {
             </View>
           </View>
 
-          {/* 🛠️ CHANGED: Safely renders recent thoughts list with standard layout bounds */}
-          {recentThoughts.length > 0 && (
+         
+          {recentThoughts?.length > 0 && (
             <View style={styles.recentSection}>
                 <View style={styles.recentHeaderRow}>
                     <Text style={styles.recentSectionTitle}>Recent Active Thoughts</Text>
