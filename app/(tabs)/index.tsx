@@ -1,3 +1,5 @@
+import { useNotifications } from '@/hooks/useNotifications';
+import { useWebNotifications } from '@/hooks/useWebNotifications';
 import '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
@@ -79,8 +81,6 @@ export default function HomeScreen() {
     return <SafeHomeScreenContent />
 }
  function SafeHomeScreenContent() {
-    const {useNotifications} = require('@/hooks/useNotifications');
-    const {useWebNotifications} = require('@/hooks/useWebNotifications');;
     useWebNotifications();
     const pushToken = useNotifications();
     const isMatchingRef = useRef(false);
@@ -133,29 +133,32 @@ export default function HomeScreen() {
       });
     };
 
+    const getActiveChatCount = async (userId: string): Promise<number> => {
+        const { data, error } = await supabase.rpc('get_user_active_chat_count', {
+            check_user_id: userId,
+        });
+        if (error) throw error;
+        return data ?? 0;
+    };
+
+    const getFullUserIdSet = async (): Promise<Set<string>> => {
+        const { data: fullUsers, error } = await supabase.rpc('get_full_user_ids');
+        if (error) throw error;
+
+        const fullUserIdSet = new Set<string>();
+        (fullUsers || []).forEach((row: { user_id?: string } | string) => {
+            const id = typeof row === 'string' ? row : row.user_id;
+            if (id) fullUserIdSet.add(id.toLowerCase());
+        });
+        return fullUserIdSet;
+    };
+
     const fetchRecentThoughts = async () => {
         try {
             const { data: authData } = await supabase.auth.getUser();
             const currentUserId = authData?.user?.id;
 
-            const { data: rooms, error: roomsError } = await supabase
-                .from('match_rooms')
-                .select('user_1, user_2, abandoned_by');
-
-            if (roomsError) throw roomsError;
-
-            const activeChatCounts: Record<string, number> = {};
-
-            (rooms || []).forEach(room => {
-                if (!room.abandoned_by) {
-                    activeChatCounts[room.user_1] = (activeChatCounts[room.user_1] || 0) + 1;
-                    activeChatCounts[room.user_2] = (activeChatCounts[room.user_2] || 0) + 1;
-                }
-            });
-
-            const fullUserIds = Object.keys(activeChatCounts).filter(
-                userId => activeChatCounts[userId] >= 3
-            );
+            const fullUserIdSet = await getFullUserIdSet();
 
             let query = supabase
                 .from('thoughts')
@@ -168,11 +171,13 @@ export default function HomeScreen() {
 
             const { data: thoughts, error: thoughtsError } = await query.limit(20);
 
+            if (thoughtsError) throw thoughtsError;
+
             const filtered = (thoughts || []).filter(
-                (t) => !fullUserIds.includes(t.user_id)
+                (thought) => !fullUserIdSet.has(thought.user_id.toLowerCase())
             );
 
-            setRecentThoughts(filtered)
+            setRecentThoughts(filtered);
         } catch (err: any) {
             console.error("Error loading interactive thoughts loop:", err.message);
         }
@@ -374,34 +379,22 @@ export default function HomeScreen() {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error("No user found");
 
-            if (user.id === targetUserId) return; 
+            if (user.id === targetUserId) return;
 
-            const { data: rooms, error: roomsError } = await supabase
-                .from('match_rooms')
-                .select('user_1, user_2, abandoned_by');
+            const targetUserChats = await getActiveChatCount(targetUserId);
+            if (targetUserChats >= 3) {
+                triggerPopup(
+                    "User Busy",
+                    "This user has reached their maximum limit of active chats. Try matching with another active thought!"
+                );
+                fetchRecentThoughts();
+                return;
+            }
 
-            if (!roomsError && rooms) {
-                const targetUserChats = rooms.filter(room => {
-                    return !room.abandoned_by && (room.user_1 === targetUserId || room.user_2 === targetUserId)
-                }).length;
-
-                if (targetUserChats >= 3) {
-                    triggerPopup(
-                        "User Busy", 
-                        "This user has reached their maximum limit of active chats. Try matching with another active thought!"
-                    );
-                    fetchRecentThoughts();
-                    return;
-                }
-
-                const currentUserChats = rooms.filter(room => {
-                    return !room.abandoned_by && (room.user_1 === user.id || room.user_2 === user.id)
-                }).length;
-
-                if(currentUserChats >= 3) {
-                    triggerPopup(t('limit_reached'), t('three_chats'));
-                    return;
-                }
+            const currentUserChats = await getActiveChatCount(user.id);
+            if (currentUserChats >= 3) {
+                triggerPopup(t('limit_reached'), t('three_chats'));
+                return;
             }
 
             setStatus('matching');
@@ -428,7 +421,18 @@ export default function HomeScreen() {
                     .select()
                     .single();
 
-                if (roomError) throw roomError;
+                if (roomError) {
+                    if (roomError.message.includes('maximum limit of 3 active chats')) {
+                        triggerPopup(
+                            "User Busy",
+                            "This user has reached their maximum limit of active chats. Try matching with another active thought!"
+                        );
+                        fetchRecentThoughts();
+                        setStatus('idle');
+                        return;
+                    }
+                    throw roomError;
+                }
                 targetRoomId = newRoom.id;
             }
 
