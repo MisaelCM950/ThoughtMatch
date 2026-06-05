@@ -77,6 +77,8 @@ export default function HomeScreen() {
     const { t } = useTranslation();
     const [isClientMounted, setIsClientMounted] = useState<boolean>(false);
 
+    const [isAIProcessing, setIsAIProcessing] = useState<boolean>(false);
+
     useEffect(() => {
         setIsClientMounted(true);
         initializedGlobalCounter();
@@ -128,7 +130,7 @@ export default function HomeScreen() {
             const activeChatCounts: Record<string, number> = {};
 
             (rooms || []).forEach(room => {
-                if (room.abandoned_by !== room.user_1) {
+                if (room.abandoned_by) {
                     activeChatCounts[room.user_1] = (activeChatCounts[room.user_1] || 0) + 1;
                     activeChatCounts[room.user_2] = (activeChatCounts[room.user_2] || 0) + 1;
                 }
@@ -209,6 +211,8 @@ export default function HomeScreen() {
     }
 
     const handleForceAIMatch = async (userThought: string, userId: string) => {
+         if(isAIProcessing) return;
+        setIsAIProcessing(true);
         setStatus('matching');
         setPopupConfig(prev => ({...prev, visible: false}));
 
@@ -350,20 +354,24 @@ export default function HomeScreen() {
 
             if (!roomsError && rooms) {
                 const activeChatCounts = rooms.filter(room => {
-                    return !room.abandoned_by && (room.user_1 === user.id || room.user_2 === user.id)
+                    return !room.abandoned_by && (room.user_1 === targetUserId || room.user_2 === targetUserId)
                 }).length;
 
                 if (activeChatCounts >= 3) {
                     triggerPopup(
-                        t('limit_reached'),
-                        t('three_chats'),
-                        t('view_matches'),
-                        () => {
-                            setPopupConfig(prev => ({ ...prev, visible: false }));
-                            router.push('/matches');
-                        },
-                        t('cancel')
+                        "User Busy", 
+                        "This user has reached their maximum limit of active chats. Try matching with another active thought!"
                     );
+                    fetchRecentThoughts();
+                    return;
+                }
+
+                const currentUserChats = rooms.filter(room => {
+                    return !room.abandoned_by && (room.user_1 === user.id || room.user_2 === user.id)
+                }).length;
+
+                if(currentUserChats >= 3) {
+                    triggerPopup(t('limit_reached'), t('three_chats'));
                     return;
                 }
             }
@@ -497,10 +505,11 @@ export default function HomeScreen() {
             <View style={styles.popupActionsContainer}>
               {popupConfig.primaryButtonText && popupConfig.onPrimaryPress && (
                 <TouchableOpacity 
-                  style={styles.popupPrimaryButton} 
+                  style={[styles.popupPrimaryButton, isAIProcessing && {opacity: 0.5}]} 
+                  disabled={isAIProcessing}
                   onPress={popupConfig.onPrimaryPress}
                 >
-                  <Text style={styles.popupPrimaryButtonText}>{popupConfig.primaryButtonText}</Text>
+                  <Text style={styles.popupPrimaryButtonText}>{isAIProcessing ? 'Syncing....' : popupConfig.primaryButtonText}</Text>
                 </TouchableOpacity>
               )}
               
