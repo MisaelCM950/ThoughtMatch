@@ -7,7 +7,6 @@ import { Platform } from 'react-native';
 let globalMatchChannel: any = null;
 let globalMatchListeners: Set<(newRoom: any) => void> = new Set();
 let isNotificationChannelInitializing = false;
-const { t } = useTranslation();
 
 const initializeGlobalMatchStream = async () => {
   if (globalMatchChannel || isNotificationChannelInitializing) return;
@@ -47,6 +46,8 @@ const initializeGlobalMatchStream = async () => {
 };
 
 export function useWebNotifications() {
+  const { t } = useTranslation();
+
   useEffect(() => {
     if (Platform.OS !== 'web') return;
 
@@ -80,5 +81,5 @@ export function useWebNotifications() {
     return () => {
       globalMatchListeners.delete(handleIncomingMatchAlert);
     };
-  }, []);
+  }, [t]);
 }

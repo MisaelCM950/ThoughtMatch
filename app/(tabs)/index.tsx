@@ -14,7 +14,6 @@ interface PopupConfig {
   onPrimaryPress?: () => void;
 }
 
-let globalPresenceChannel: any = null;
 let globalListeners: Set<(count: number)=> void> = new Set();
 
 const initializedGlobalCounter = () => {
@@ -99,8 +98,9 @@ export default function HomeScreen() {
     useEffect(() => {
         initializedGlobalCounter();
 
-        if (globalPresenceChannel) {
-            const initialState = globalPresenceChannel.presenceState();
+        const globalRef = Platform.OS === 'web' ? (window as any) : globalThis;
+        if (globalRef.globalPresenceChannel) {
+            const initialState = globalRef.globalPresenceChannel.presenceState();
             const initialCount = Object.keys(initialState).length;
             setOnlineUserCount(initialCount > 0 ? initialCount : 1);
         }
@@ -165,7 +165,7 @@ export default function HomeScreen() {
                 query = query.not('user_id', 'eq', currentUserId);
             }
 
-            if (fullUserIds.length > 0) {
+            if ((fullUserIds || []).length > 0) {
                 query = query.not('user_id', 'in', `(${fullUserIds.join(',')})`)
             }
 
@@ -486,7 +486,7 @@ export default function HomeScreen() {
                 </View>
 
                 <View style={styles.recentListContainer}>
-                    {recentThoughts.map((item, index) => (
+                    {recentThoughts?.map((item, index) => (
                         <TouchableOpacity
                             key={index}
                             style={styles.thoughtCard}
