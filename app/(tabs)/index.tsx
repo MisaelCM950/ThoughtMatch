@@ -166,15 +166,13 @@ export default function HomeScreen() {
                 query = query.not('user_id', 'eq', currentUserId);
             }
 
-            if ((fullUserIds || []).length > 0) {
-                query = query.not('user_id', 'in', `(${fullUserIds.join(',')})`)
-            }
-
             const { data: thoughts, error: thoughtsError } = await query.limit(20);
 
-            if (!thoughtsError && thoughts) {
-                setRecentThoughts(thoughts)
-            }
+            const filtered = (thoughts || []).filter(
+                (t) => !fullUserIds.includes(t.user_id)
+            );
+
+            setRecentThoughts(filtered)
         } catch (err: any) {
             console.error("Error loading interactive thoughts loop:", err.message);
         }
@@ -188,10 +186,18 @@ export default function HomeScreen() {
             .channel(channelUniqueId)
             .on(
                 'postgres_changes',
-                { event: 'INSERT', schema: 'public', table: 'thoughts' },
-                () => {
-                    fetchRecentThoughts();
-                }
+                {event: 'INSERT', schema: 'public', table: 'thoughts'},
+                ()=> fetchRecentThoughts()
+            )
+            .on(
+                'postgres_changes',
+                {event: 'INSERT', schema: 'public', table: 'match_rooms'},
+                ()=> fetchRecentThoughts()
+            )
+            .on(
+                'postgres_changes',
+                {event: 'UPDATE', schema: 'public', table: 'match_rooms'},
+                ()=> fetchRecentThoughts()
             )
             .subscribe();
 
@@ -260,13 +266,12 @@ export default function HomeScreen() {
 
     const handleMatch = async () => {
 
+        if (thought.trim().length < 15) {
+            triggerPopup(t('thought_too_short'), t('write_more'));
+            return;
+          }
         if(isMatchingRef.current || status === 'matching') return;
         isMatchingRef.current = true;
-
-      if (thought.trim().length < 15) {
-        triggerPopup(t('thought_too_short'), t('write_more'));
-        return;
-      }
 
       setStatus('matching');
       const currentThoughtText = thought;
