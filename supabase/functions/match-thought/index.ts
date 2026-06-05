@@ -59,34 +59,36 @@ serve(async (req) => {
     }
 
     const apiKey = Deno.env.get('OPENAI_API_KEY')
-
-    const response = await fetch('https://api.openai.com/v1/embeddings', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        input: thought,
-        model: 'text-embedding-3-small',
-      }),
-    })
-
-    const result = await response.json()
-    if (!result.data) throw new Error("OpenAI Embedding Error: " + JSON.stringify(result))
-    const embedding = result.data[0].embedding
-
+    let embedding: number[] | null = null;
     
-        const {error: insertError} = await supabaseClient
-            .from('thoughts')
-            .insert({
-                content: thought,
-                user_id: userId,
-                embedding: embedding,
-            })
-
-        if(insertError) throw insertError
-
+    if(!forceAIFallback) {
+        const response = await fetch('https://api.openai.com/v1/embeddings', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              input: thought,
+              model: 'text-embedding-3-small',
+            }),
+          })
+      
+          const result = await response.json()
+          if (!result.data) throw new Error("OpenAI Embedding Error: " + JSON.stringify(result))
+          embedding = result.data[0].embedding
+      
+          
+              const {error: insertError} = await supabaseClient
+                  .from('thoughts')
+                  .insert({
+                      content: thought,
+                      user_id: userId,
+                      embedding: embedding,
+                  })
+      
+              if(insertError) throw insertError
+    }
     const targetThreshold = 0.40;
     let finalizedMatch = null;
 

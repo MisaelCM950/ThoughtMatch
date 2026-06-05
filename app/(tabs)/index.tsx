@@ -1,7 +1,7 @@
 import '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -83,6 +83,7 @@ export default function HomeScreen() {
     const {useWebNotifications} = require('@/hooks/useWebNotifications');;
     useWebNotifications();
     const pushToken = useNotifications();
+    const isMatchingRef = useRef(false);
 
     const [onlineUserCount, setOnlineUserCount] = useState<number>(1);
     const [recentThoughts, setRecentThoughts] = useState<any[]>([]);
@@ -258,6 +259,10 @@ export default function HomeScreen() {
     };
 
     const handleMatch = async () => {
+
+        if(isMatchingRef.current || status === 'matching') return;
+        isMatchingRef.current = true;
+
       if (thought.trim().length < 15) {
         triggerPopup(t('thought_too_short'), t('write_more'));
         return;
@@ -354,6 +359,8 @@ export default function HomeScreen() {
         console.error('Match error:', e);
         setStatus('idle');
         triggerPopup("Matching Failed", e.message || "An unexpected network error occurred.");
+      } finally {
+        isMatchingRef.current = false;
       }
     };
 
