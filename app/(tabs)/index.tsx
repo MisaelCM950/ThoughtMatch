@@ -196,12 +196,7 @@ export default function HomeScreen() {
             )
             .on(
                 'postgres_changes',
-                {event: 'INSERT', schema: 'public', table: 'match_rooms'},
-                ()=> fetchRecentThoughts()
-            )
-            .on(
-                'postgres_changes',
-                {event: 'UPDATE', schema: 'public', table: 'match_rooms'},
+                {event: 'INSERT', schema: 'public', table: 'feed_refresh_signals'},
                 ()=> fetchRecentThoughts()
             )
             .subscribe();
