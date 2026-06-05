@@ -1,5 +1,3 @@
-import { useNotifications } from '@/hooks/useNotifications';
-import { useWebNotifications } from '@/hooks/useWebNotifications';
 import '@/i18n';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'expo-router';
@@ -68,10 +66,25 @@ const getRelativeTime = (dateString: string) => {
     if(elapsed < msPerDay) return Math.round(elapsed / msPerHour) + 'h ago';
     return Math.round(elapsed / msPerDay) + 'd ago';
 };
-
 export default function HomeScreen() {
+    const [isClientMounted, setIsClientMounted] = useState<boolean>(false);
+
+    useEffect(() => {
+        setIsClientMounted(true);
+    }, []);
+
+    if (!isClientMounted) {
+        return <View style={{ flex: 1, backgroundColor: '#121212' }} />;
+    }
+    
+    return <SafeHomeScreenContent />
+}
+ function SafeHomeScreenContent() {
+    const {useNotifications} = require('@/hooks/useNotifications');
+    const {useWebNotifications} = require('@/hooks/useWebNotifications');;
     useWebNotifications();
     const pushToken = useNotifications();
+
     const [onlineUserCount, setOnlineUserCount] = useState<number>(1);
     const [recentThoughts, setRecentThoughts] = useState<any[]>([]);
     const [thought, setThought] = useState('');
@@ -79,12 +92,11 @@ export default function HomeScreen() {
     const [roomId, setRoomId] = useState<string | null>(null);
     const router = useRouter();
     const { t } = useTranslation();
-    const [isClientMounted, setIsClientMounted] = useState<boolean>(false);
+    
 
     const [isAIProcessing, setIsAIProcessing] = useState<boolean>(false);
 
     useEffect(() => {
-        setIsClientMounted(true);
         initializedGlobalCounter();
 
         if (globalPresenceChannel) {
@@ -168,9 +180,7 @@ export default function HomeScreen() {
     };
 
     useEffect(() => {
-        if (!isClientMounted) return;
-
-        fetchRecentThoughts();
+      fetchRecentThoughts();
         const channelUniqueId = `thoughts-feed-stream-${Math.random().toString(36).substring(7)}`;
 
         const thoughtsSubscription = supabase
@@ -187,13 +197,13 @@ export default function HomeScreen() {
         return () => {
             supabase.removeChannel(thoughtsSubscription);
         };
-    }, [isClientMounted]);
+    }, []);
 
     useEffect(() => {
-        if (isClientMounted && status == 'idle') {
+        if (status == 'idle') {
             fetchRecentThoughts();
         }
-    }, [status, isClientMounted]);
+    }, [status]);
 
     const handleMatchError = (errorMessage: string) => {
         console.log("Parsing function error", errorMessage);
