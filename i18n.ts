@@ -38,6 +38,10 @@ const resources = {
             wait: 'Okay, Wait',
             match_found: '🧠 Match Found!',
             notification_payload: 'Someone matched with your thought! Click to jump into your chat room.',
+            legal: 'By continuing, you agree to our',
+            legal1:'Terms of Service',
+            legal2: 'Privacy Policy',
+            
 
             
             matched_on: "You matched on:",
@@ -101,6 +105,9 @@ const resources = {
             wait: 'Okay, Esperar',
             match_found: '🧠 Match encontrado!', 
             notication_payload: '¡Alguien ha conectado con tu idea! Haz clic para entrar en la sala de chat.',
+            legal: 'Al continuar, aceptas nuestros',
+            legal1: 'Condiciones de servicio',
+            legal2: 'Política de privacidad',
 
             matched_on: "Conectaste en:",
             with: "con",

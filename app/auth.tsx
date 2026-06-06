@@ -93,19 +93,19 @@ export default function Auth() {
           </TouchableOpacity>
 
           <Text style={styles.legalText}>
-            By continuing you, agree to our{' '}
+            {t('legal')}{' '}
             <Text
                 style={styles.legalLink}
                 onPress={()=> Linking.openURL('https://docs.google.com/document/d/1-V982VuNPbCnSZM-hD9jSaH-1vvuBdE3jXFgusBO7ug/edit?usp=sharing')}
             >
-                Terms of Service
+                {t('legal1')}
             </Text>
             {' '}and {' '}
             <Text
                 style={styles.legalLink}
                 onPress={()=> Linking.openURL('https://docs.google.com/document/d/1-V982VuNPbCnSZM-hD9jSaH-1vvuBdE3jXFgusBO7ug/edit?usp=sharing')}
             >
-                Privacy Policy
+                {t('legal2')}
             </Text>
           </Text>
 
