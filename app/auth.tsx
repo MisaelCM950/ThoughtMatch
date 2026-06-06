@@ -3,7 +3,7 @@ import { default as i18nInstance } from '@/i18n';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { ActivityIndicator, Keyboard, KeyboardAvoidingView, Linking, Platform, StyleSheet, Text, TextInput, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { supabase } from '../lib/supabase';
 
 export default function Auth() {
@@ -92,6 +92,23 @@ export default function Auth() {
             <Text style={styles.buttonSecondaryText}>{t('create_account')}</Text>
           </TouchableOpacity>
 
+          <Text style={styles.legalText}>
+            By continuing you, agree to our{' '}
+            <Text
+                style={styles.legalLink}
+                onPress={()=> Linking.openURL('https://docs.google.com/document/d/1-V982VuNPbCnSZM-hD9jSaH-1vvuBdE3jXFgusBO7ug/edit?usp=sharing')}
+            >
+                Terms of Service
+            </Text>
+            {' '}and {' '}
+            <Text
+                style={styles.legalLink}
+                onPress={()=> Linking.openURL('https://docs.google.com/document/d/1-V982VuNPbCnSZM-hD9jSaH-1vvuBdE3jXFgusBO7ug/edit?usp=sharing')}
+            >
+                Privacy Policy
+            </Text>
+          </Text>
+
           <View style={styles.languageContainer}>
               <TouchableOpacity 
                 style={[styles.langLink, i18n.resolvedLanguage?.startsWith('en') && styles.activeLang, styles.webPointer]} 
@@ -124,6 +141,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center', 
     alignItems: 'center', 
     paddingHorizontal: '5%', 
+  },
+  legalLink: {
+    color: '#2686b3',
+    textDecorationLine: 'underline',
+  },
+  legalText: {
+    color: '#808080',
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 16
   },
   noticeBox: {
     backgroundColor: '#111',
