@@ -41,7 +41,8 @@ const resources = {
             legal: 'By continuing, you agree to our',
             legal1:'Terms of Service',
             legal2: 'Privacy Policy',
-            
+            active_thoughts: 'Recent Active Thoughts',
+            type_a_thought: 'Tap a thought to match instantly',
 
             
             matched_on: "You matched on:",
@@ -108,6 +109,8 @@ const resources = {
             legal: 'Al continuar, aceptas nuestros',
             legal1: 'Condiciones de servicio',
             legal2: 'Política de privacidad',
+            active_thoughts: 'Pensamientos recientes activos',
+            type_a_thought: 'Toca un pensamiento para conecatar al instante',
 
             matched_on: "Conectaste en:",
             with: "con",

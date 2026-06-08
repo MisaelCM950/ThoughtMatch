@@ -96,8 +96,8 @@ export default function HomeScreen() {
           {recentThoughts?.length > 0 && (
             <View style={styles.recentSection}>
                 <View style={styles.recentHeaderRow}>
-                    <Text style={styles.recentSectionTitle}>Recent Active Thoughts</Text>
-                    <Text style={styles.recentSectionSubtitle}>Tap a thought to write a matching reply instantly</Text>
+                    <Text style={styles.recentSectionTitle}>{t('active_thoughts')}</Text>
+                    <Text style={styles.recentSectionSubtitle}>{t('type_a_thought')}</Text>
                 </View>
 
                 <View style={styles.recentListContainer}>
